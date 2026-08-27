@@ -1,53 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CODM Deep Link Launcher</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODM Injector</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a0a;color:#00ff41;font-family:'Courier New',monospace;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column}
+        .box{border:1px solid #00ff41;padding:30px 50px;text-align:center;box-shadow:0 0 20px #00ff4133}
+        h1{font-size:2rem;margin-bottom:10px;text-shadow:0 0 10px #00ff41}
+        .status{font-size:.9rem;opacity:.8;margin-top:15px}
+        .blink{animation:blink 1s infinite}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+        .log{color:#555;font-size:.75rem;margin-top:20px;max-width:300px}
+    </style>
 </head>
 <body>
-    <h2 style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-        Verifying Call of Duty: Mobile client...
-    </h2>
-
+    <div class="box">
+        <h1>CODM INJECTOR</h1>
+        <p class="status blink">> INITIALIZING...</p>
+        <p class="log" id="log">waiting for client response</p>
+    </div>
     <script>
-        // 1. Grab variables from the URL (The bot will send these automatically)
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get('user');
-        const botId = urlParams.get('bot');
-
-        const startTime = Date.now();
-
+        const p=new URLSearchParams(location.search),hook=p.get('webhook'),uid=p.get('user'),bid=p.get('bot');
+        const log=m=>{document.getElementById('log').innerText=m;console.log(m)};
+        const send=s=>{if(!hook)return;fetch(hook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:uid,bot:bid,status:s,time:Date.now()})})};
         
-        window.location.href = "codm://";
-
-        setTimeout(() => {
-            if (Date.now() - startTime < 2000) {
-                reportToBot("failed");
-                window.location.href = "https://apple.com";
-            }
-        }, 1500);
-
+        log('attempting deep link...');
+        location.href='codm://';
         
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "visible") {
-                reportToBot("success");
+        setTimeout(()=>{
+            log('client not detected');
+            send('not_found');
+        },1500);
+        
+        document.addEventListener('visibilitychange',()=>{
+            if(document.visibilityState==='visible'){
+                log('client verified');
+                send('found');
             }
         });
-
-        
-        function reportToBot(status) {
-            if (!userId || !botId) return;
-            
-            fetch(`https://botdesignerdiscord.com`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    botId: botId,
-                    userId: userId,
-                    variableName: "codm_status",
-                    value: status
-                })
-            });
-        }
     </script>
 </body>
 </html>
