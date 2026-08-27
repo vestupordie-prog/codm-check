@@ -1,4 +1,4 @@
 # codm-check
 
-# created by unworthy
-# just a loader
+this was created by unworthy
+it’s just a loader
