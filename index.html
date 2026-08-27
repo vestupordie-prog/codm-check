@@ -21,6 +21,7 @@
         .key-info{font-size:.8rem;color:#999;margin-top:6px;background:#f8f9fa;padding:6px 12px;border-radius:6px;display:inline-block}
         .hidden{display:none}
         .divider{height:1px;background:#eee;margin:20px 0}
+        .debug{font-size:.75rem;color:#999;margin-top:12px;background:#f8f9fa;padding:8px;border-radius:6px;text-align:left;max-height:120px;overflow-y:auto;font-family:monospace}
     </style>
 </head>
 <body>
@@ -34,6 +35,7 @@
         <div class="divider hidden" id="divider"></div>
         
         <div class="status" id="status"><span class="spinner"></span>Checking key...</div>
+        <div class="debug hidden" id="debug"></div>
     </div>
 
     <script>
@@ -49,6 +51,7 @@
         const timerEl = document.getElementById('timer');
         const keyInfoEl = document.getElementById('keyInfo');
         const dividerEl = document.getElementById('divider');
+        const debugEl = document.getElementById('debug');
 
         let reported = false;
         let keyValid = false;
@@ -57,6 +60,12 @@
         const startTime = Date.now();
         const TIMEOUT_MS = 3500;
         const DRIFT_MS = 2000;
+
+        function log(msg) {
+            console.log(msg);
+            debugEl.classList.remove('hidden');
+            debugEl.textContent += msg + '\n';
+        }
 
         function setStatus(html, type) {
             statusEl.innerHTML = html;
@@ -94,6 +103,33 @@
             else timerEl.className = 'timer';
         }
 
+        // Build proxy URLs for timercheck.io
+        function getProxyUrls(timerKey) {
+            const target = encodeURIComponent(`https://timercheck.io/${timerKey}`);
+            const targetRaw = `https://timercheck.io/${timerKey}`;
+            return [
+                `https://corsproxy.io/?url=${target}`,           // corsproxy.io (correct format)
+                `https://api.allorigins.win/raw?url=${target}`,   // allorigins fallback
+                `https://proxy.cors.sh/${targetRaw}`,            // cors.sh fallback
+                `https://api.codetabs.com/v1/proxy?quest=${targetRaw}` // codetabs fallback
+            ];
+        }
+
+        async function tryFetch(url) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeout);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                return { ok: true, data };
+            } catch (err) {
+                clearTimeout(timeout);
+                return { ok: false, error: err.message };
+            }
+        }
+
         async function validateKey() {
             if (!key) {
                 descEl.textContent = 'No access key provided. Add ?key=YOUR_KEY to the URL.';
@@ -101,40 +137,60 @@
                 return;
             }
 
-            try {
-                const res = await fetch(`https://corsproxy.io/?https://timercheck.io/${key}`);
-                const data = await res.json();
+            const urls = getProxyUrls(key);
+            let lastError = 'All proxies failed';
 
-                if (data.seconds_remaining !== undefined && data.seconds_remaining > 0) {
-                    // Key is valid
-                    keyValid = true;
-                    expiryTime = Date.now() + (data.seconds_remaining * 1000);
+            for (let i = 0; i < urls.length; i++) {
+                log(`Trying proxy ${i + 1}/${urls.length}...`);
+                const result = await tryFetch(urls[i]);
+                
+                if (result.ok) {
+                    log(`Proxy ${i + 1} responded.`);
+                    const data = result.data;
+                    log(`Response: ${JSON.stringify(data).slice(0, 200)}`);
+
+                    // Valid key — timer still running
+                    if (data.seconds_remaining !== undefined && data.seconds_remaining > 0) {
+                        keyValid = true;
+                        expiryTime = Date.now() + (data.seconds_remaining * 1000);
+                        
+                        titleEl.textContent = 'Opening Call of Duty: Mobile';
+                        descEl.textContent = 'Attempting to launch and inject into the app...';
+                        
+                        timerEl.classList.remove('hidden');
+                        keyInfoEl.classList.remove('hidden');
+                        dividerEl.classList.remove('hidden');
+                        keyInfoEl.textContent = `Key: ${key}`;
+                        
+                        updateTimer();
+                        countdownInterval = setInterval(updateTimer, 1000);
+                        
+                        setStatus('<span class="spinner"></span>Checking installation...');
+                        startCodmCheck();
+                        return;
+                    }
                     
-                    titleEl.textContent = 'Opening Call of Duty: Mobile';
-                    descEl.textContent = 'Attempting to launch and inject into the app...';
-                    
-                    timerEl.classList.remove('hidden');
-                    keyInfoEl.classList.remove('hidden');
-                    dividerEl.classList.remove('hidden');
-                    keyInfoEl.textContent = `Key: ${key}`;
-                    
-                    updateTimer();
-                    countdownInterval = setInterval(updateTimer, 1000);
-                    
-                    setStatus('<span class="spinner"></span>Checking installation...');
-                    startCodmCheck();
-                } else if (data.errorMessage && data.errorMessage.toLowerCase().includes('timed out')) {
-                    descEl.textContent = 'Plan expired! Please renew your key.';
-                    setStatus('Access expired', 'fail');
+                    // Expired key
+                    if (data.errorMessage && data.errorMessage.toLowerCase().includes('timed out')) {
+                        descEl.textContent = 'Plan expired! Please renew your key.';
+                        setStatus('Access expired', 'fail');
+                        log('Key expired on timercheck.io');
+                        return;
+                    }
+
+                    // Unknown response format
+                    log(`Unexpected response format from timercheck.io`);
+                    lastError = 'Unexpected API response';
+                    continue;
                 } else {
-                    descEl.textContent = 'Invalid key. Please check your key and try again.';
-                    setStatus('Invalid key', 'fail');
+                    log(`Proxy ${i + 1} failed: ${result.error}`);
+                    lastError = result.error;
                 }
-            } catch (err) {
-                descEl.textContent = 'Failed to reach timercheck.io. Ensure you have an internet connection.';
-                setStatus('Validation failed', 'fail');
-                console.error('Key validation error:', err);
             }
+
+            // All proxies exhausted
+            descEl.textContent = 'Failed to reach timercheck.io. All CORS proxies failed.';
+            setStatus(`Validation failed: ${lastError}`, 'fail');
         }
 
         function sendWebhook(status, reason) {
