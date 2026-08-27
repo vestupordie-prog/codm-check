@@ -108,10 +108,7 @@
             const target = encodeURIComponent(`https://timercheck.io/${timerKey}`);
             const targetRaw = `https://timercheck.io/${timerKey}`;
             return [
-                `https://corsproxy.io/?url=${target}`,           // corsproxy.io (correct format)
-                `https://api.allorigins.win/raw?url=${target}`,   // allorigins fallback
-                `https://proxy.cors.sh/${targetRaw}`,            // cors.sh fallback
-                `https://api.codetabs.com/v1/proxy?quest=${targetRaw}` // codetabs fallback
+                `https://api.allorigins.win/raw?url=${target}`  // allorigins fallback
             ];
         }
 
@@ -147,7 +144,7 @@
                 if (result.ok) {
                     log(`Proxy ${i + 1} responded.`);
                     const data = result.data;
-                    log(`Response: ${JSON.stringify(data).slice(0, 200)}`);
+    
 
                     // Valid key — timer still running
                     if (data.seconds_remaining !== undefined && data.seconds_remaining > 0) {
@@ -160,7 +157,7 @@
                         timerEl.classList.remove('hidden');
                         keyInfoEl.classList.remove('hidden');
                         dividerEl.classList.remove('hidden');
-                        keyInfoEl.textContent = `Key: ${key}`;
+                        keyInfoEl.textContent = `Key: Hidden`;
                         
                         updateTimer();
                         countdownInterval = setInterval(updateTimer, 1000);
@@ -174,12 +171,12 @@
                     if (data.errorMessage && data.errorMessage.toLowerCase().includes('timed out')) {
                         descEl.textContent = 'Plan expired! Please renew your key.';
                         setStatus('Access expired', 'fail');
-                        log('Key expired on timercheck.io');
+                        log('Key expired');
                         return;
                     }
 
                     // Unknown response format
-                    log(`Unexpected response format from timercheck.io`);
+                    log(`Unexpected response format `);
                     lastError = 'Unexpected API response';
                     continue;
                 } else {
