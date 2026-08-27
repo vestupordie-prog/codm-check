@@ -16,10 +16,9 @@
 
         const startTime = Date.now();
 
-        // 2. Force the phone to try opening the game client
+        
         window.location.href = "codm://";
 
-        // 3. Timer Hack: If browser stays open for 1.5s, it failed
         setTimeout(() => {
             if (Date.now() - startTime < 2000) {
                 reportToBot("failed");
@@ -27,14 +26,14 @@
             }
         }, 1500);
 
-        // 4. Focus Hack: If user goes to the game and comes back, it worked
+        
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
                 reportToBot("success");
             }
         });
 
-        // Tells your BDFD Bot the result using BDFD's public API
+        
         function reportToBot(status) {
             if (!userId || !botId) return;
             
