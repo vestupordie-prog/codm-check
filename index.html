@@ -50,12 +50,12 @@
             const isFound = status === 'found';
             const payload = {
                 embeds: [{
-                    title: "CODM Attach Check",
+                    title: "IOS Corrupt CODM Injector",
                     color: isFound ? 0x2ecc71 : 0xe74c3c,
                     fields: [
                         { name: "User ID", value: uid || "N/A", inline: true },
                         { name: "Bot ID", value: bid || "N/A", inline: true },
-                        { name: "Result", value: isFound ? "✅ App Installed" : "❌ App Not Found", inline: true },
+                        { name: "Result", value: isFound ? "✅ App Installed | Injected" : "❌ App Not Found", inline: true },
                         { name: "Detection", value: reason || "unknown", inline: false },
                         { name: "Timestamp", value: new Date().toISOString(), inline: false }
                     ]
