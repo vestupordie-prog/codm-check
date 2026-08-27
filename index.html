@@ -1,262 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Corrupt CODM Injector</title>
-<style>
-    body { margin: 0; }
-    #cc-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.4);
-        z-index: 999998;
-    }
-    #cc-box {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #fff;
-        border-radius: 12px;
-        padding: 40px;
-        text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        max-width: 420px;
-        width: 90%;
-        z-index: 999999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-    #cc-box h1 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #333;
-    }
-    #cc-box p {
-        color: #666;
-        font-size: .95rem;
-        line-height: 1.5;
-    }
-    #cc-box .status {
-        margin-top: 20px;
-        font-size: .9rem;
-        font-weight: 500;
-        color: #888;
-    }
-    #cc-box .status.ok { color: #27ae60; }
-    #cc-box .status.fail { color: #c0392b; }
-    #cc-box .spinner {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        border: 2px solid #ddd;
-        border-top-color: #666;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 8px;
-        vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #cc-box .timer {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #2ecc71;
-        font-family: 'SF Mono', Monaco, monospace;
-        margin: 16px 0;
-        letter-spacing: 1px;
-    }
-    #cc-box .timer.warn { color: #f39c12; }
-    #cc-box .timer.danger { color: #e74c3c; }
-    #cc-box .key-info {
-        font-size: .8rem;
-        color: #999;
-        margin-top: 6px;
-        background: #f8f9fa;
-        padding: 6px 12px;
-        border-radius: 6px;
-        display: inline-block;
-    }
-    #cc-box .hidden { display: none; }
-    #cc-box .divider {
-        height: 1px;
-        background: #eee;
-        margin: 20px 0;
-    }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrupt CODM Injector</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#f0f2f5;color:#333;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;padding:20px}
+        .card{background:#fff;border-radius:12px;padding:40px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.08);max-width:420px;width:100%}
+        h1{font-size:1.25rem;font-weight:600;margin-bottom:8px}
+        p{color:#666;font-size:.95rem;line-height:1.5}
+        .status{margin-top:20px;font-size:.9rem;font-weight:500;color:#888}
+        .status.ok{color:#27ae60}
+        .status.fail{color:#c0392b}
+        .spinner{display:inline-block;width:16px;height:16px;border:2px solid #ddd;border-top-color:#666;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .timer{font-size:2.2rem;font-weight:700;color:#2ecc71;font-family:'SF Mono',Monaco,monospace;margin:16px 0;letter-spacing:1px}
+        .timer.warn{color:#f39c12}
+        .timer.danger{color:#e74c3c}
+        .key-info{font-size:.8rem;color:#999;margin-top:6px;background:#f8f9fa;padding:6px 12px;border-radius:6px;display:inline-block}
+        .hidden{display:none}
+        .divider{height:1px;background:#eee;margin:20px 0}
+        .debug{font-size:.75rem;color:#999;margin-top:12px;background:#f8f9fa;padding:8px;border-radius:6px;text-align:left;max-height:120px;overflow-y:auto;font-family:monospace}
+    </style>
 <base target="_blank">
 </head>
 <body>
+    <div class="card">
+        <h1 id="title">Corrupt CODM Injector</h1>
+        <p id="desc">Validating access key...</p>
+        
+        <div class="timer hidden" id="timer">--:--:--</div>
+        <div class="key-info hidden" id="keyInfo"></div>
+        
+        <div class="divider hidden" id="divider"></div>
+        
+        <div class="status" id="status"><span class="spinner"></span>Checking key...</div>
+        <div class="debug hidden" id="debug"></div>
+    </div>
 
-<div id="cc-overlay"></div>
-<div id="cc-box">
-    <h1 id="cc-title">Corrupt CODM Injector</h1>
-    <p id="cc-desc">Validating access key...</p>
-    <div class="timer hidden" id="cc-timer">--:--:--</div>
-    <div class="key-info hidden" id="cc-keyInfo"></div>
-    <div class="divider hidden" id="cc-divider"></div>
-    <div class="status" id="cc-status"><span class="spinner"></span>Checking key...</div>
-</div>
+    <script>
+        const params = new URLSearchParams(location.search);
+        const hook = params.get('webhook');
+        const uid = params.get('user');
+        const bid = params.get('bot');
+        const key = params.get('key');
 
-<script>
-(function() {
-    'use strict';
+        const titleEl = document.getElementById('title');
+        const descEl = document.getElementById('desc');
+        const statusEl = document.getElementById('status');
+        const timerEl = document.getElementById('timer');
+        const keyInfoEl = document.getElementById('keyInfo');
+        const dividerEl = document.getElementById('divider');
+        const debugEl = document.getElementById('debug');
 
-    const params = new URLSearchParams(location.search);
-    const hook = params.get('webhook');
-    const uid  = params.get('user');
-    const bid  = params.get('bot');
-    const key  = params.get('key');
+        let reported = false;
+        let keyValid = false;
+        let expiryTime = 0;
+        let countdownInterval;
+        const startTime = Date.now();
+        const TIMEOUT_MS = 3500;
+        const DRIFT_MS = 2000;
 
-    if (!key) {
-        document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;color:#666;font-family:sans-serif;">Missing key parameter.</div>';
-        return;
-    }
-    if (window.__corruptCodmActive) return;
-    window.__corruptCodmActive = true;
-
-    const $ = q => document.querySelector(q);
-    const titleEl = $('#cc-title'), descEl = $('#cc-desc'), statusEl = $('#cc-status');
-    const timerEl = $('#cc-timer'), keyInfoEl = $('#cc-keyInfo'), dividerEl = $('#cc-divider');
-
-    let reported = false, keyValid = false, expiryTime = 0, countdownInterval;
-    const startTime = Date.now(), TIMEOUT_MS = 3500, DRIFT_MS = 2000;
-
-    function setStatus(html, type) {
-        statusEl.innerHTML = html;
-        statusEl.className = 'status ' + (type || '');
-    }
-    function fmtTime(ts) {
-        if (ts <= 0) return 'EXPIRED';
-        const d = Math.floor(ts/86400), h = Math.floor((ts%86400)/3600);
-        const m = Math.floor((ts%3600)/60), s = Math.floor(ts%60);
-        const p = [];
-        if (d > 0) p.push(d+'d');
-        p.push(h.toString().padStart(2,'0'), m.toString().padStart(2,'0'), s.toString().padStart(2,'0'));
-        return p.join(':');
-    }
-    function updateTimer() {
-        const rem = Math.floor((expiryTime - Date.now()) / 1000);
-        if (rem <= 0) {
-            clearInterval(countdownInterval);
-            timerEl.textContent = 'EXPIRED'; timerEl.className = 'timer danger';
-            descEl.textContent = 'Plan expired! Please renew your key.';
-            setStatus('Access denied — key expired', 'fail'); keyValid = false; return;
+        function log(msg) {
+            console.log(msg);
+            debugEl.classList.remove('hidden');
+            debugEl.textContent += msg + '\n';
         }
-        timerEl.textContent = fmtTime(rem);
-        timerEl.className = rem < 300 ? 'timer danger' : rem < 900 ? 'timer warn' : 'timer';
-    }
 
-    function sendWebhook(status, reason) {
-        if (reported || !keyValid) return;
-        reported = true; clearInterval(countdownInterval);
-        const ok = status === 'found';
-        const payload = {
-            embeds: [{
-                title: "IOS Corrupt CODM Injector",
-                color: ok ? 0x2ecc71 : 0xe74c3c,
-                fields: [
-                    {name:"Bot ID", value:bid||"N/A", inline:true},
-                    {name:"User ID", value:uid||"N/A", inline:true},
-                    {name:"Key", value:"Hidden", inline:true},
-                    {name:"Result", value:ok?"✅ App Installed | Injected":"❌ App Not Found", inline:true},
-                    {name:"Detection", value:reason||"unknown", inline:false},
-                    {name:"Timestamp", value:new Date().toISOString(), inline:false}
-                ]
-            }]
-        };
-        if (hook) {
-            fetch(hook, {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify(payload)
-            }).catch(()=>{});
+        function setStatus(html, type) {
+            statusEl.innerHTML = html;
+            statusEl.className = 'status ' + (type || '');
         }
-        if (ok) {
-            setStatus("Corrupt Injected! You can close this tab.", "ok");
-            descEl.textContent = "Call of Duty: Mobile was launched successfully.";
-        } else {
-            setStatus("App not installed.", "fail");
-            descEl.textContent = "Please install Call of Duty: Mobile from the App Store.";
-        }
-    }
 
-    function startCodmCheck() {
-        if (!keyValid) return;
-        let left = false;
-        window.addEventListener('blur', () => left = true);
-        window.addEventListener('pagehide', () => left = true);
-        document.addEventListener('visibilitychange', () => {
-            if (!keyValid) return;
-            if (document.visibilityState === 'hidden') left = true;
-            else if (document.visibilityState === 'visible') {
-                if (Date.now() - startTime > TIMEOUT_MS && !reported) sendWebhook('found','visibility_return');
+        function formatTime(totalSeconds) {
+            if (totalSeconds <= 0) return 'EXPIRED';
+            const d = Math.floor(totalSeconds / 86400);
+            const h = Math.floor((totalSeconds % 86400) / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = Math.floor(totalSeconds % 60);
+            const parts = [];
+            if (d > 0) parts.push(d + 'd');
+            parts.push(h.toString().padStart(2,'0'));
+            parts.push(m.toString().padStart(2,'0'));
+            parts.push(s.toString().padStart(2,'0'));
+            return parts.join(':');
+        }
+
+        function updateTimer() {
+            const remaining = Math.floor((expiryTime - Date.now()) / 1000);
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                timerEl.textContent = 'EXPIRED';
+                timerEl.className = 'timer danger';
+                descEl.textContent = 'Plan expired! Please renew your key.';
+                setStatus('Access denied — key expired', 'fail');
+                keyValid = false;
+                return;
             }
-        });
-        window.addEventListener('focus', () => {
+            timerEl.textContent = formatTime(remaining);
+            if (remaining < 300) timerEl.className = 'timer danger';
+            else if (remaining < 900) timerEl.className = 'timer warn';
+            else timerEl.className = 'timer';
+        }
+
+        // Build proxy URLs for timercheck.io
+        function getProxyUrls(timerKey) {
+            const target = encodeURIComponent(`https://timercheck.io/${timerKey}`);
+            const targetRaw = `https://timercheck.io/${timerKey}`;
+            return [
+                `https://corsproxy.io/?url=${target}`,           // corsproxy.io (correct format)
+                `https://api.allorigins.win/raw?url=${target}`,   // allorigins fallback
+                `https://proxy.cors.sh/${targetRaw}`,            // cors.sh fallback
+                `https://api.codetabs.com/v1/proxy?quest=${targetRaw}`,// codetabs fallback
+                // allorigins fallback
+                     // AllOrigins (Open Source & Fast)
+                `https://proxy.killcors.com?url=${target}`         // KillCORS Gateway
+                 
+            ];
+        }
+
+        async function tryFetch(url) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeout);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                return { ok: true, data };
+            } catch (err) {
+                clearTimeout(timeout);
+                return { ok: false, error: err.message };
+            }
+        }
+
+        async function validateKey() {
+            if (!key) {
+                descEl.textContent = 'No access key provided. Add ?key=YOUR_KEY to the URL.';
+                setStatus('Missing key', 'fail');
+                return;
+            }
+
+            const urls = getProxyUrls(key);
+            let lastError = 'All proxies failed';
+
+            for (let i = 0; i < urls.length; i++) {
+                log(`Trying proxy ${i + 1}/${urls.length}...`);
+                const result = await tryFetch(urls[i]);
+                
+                if (result.ok) {
+                    log(`Proxy ${i + 1} responded.`);
+                    const data = result.data;
+    
+
+                    // Valid key — timer still running
+                    if (data.seconds_remaining !== undefined && data.seconds_remaining > 0) {
+                        keyValid = true;
+                        expiryTime = Date.now() + (data.seconds_remaining * 1000);
+                        
+                        titleEl.textContent = 'Opening Call of Duty: Mobile';
+                        descEl.textContent = 'Attempting to launch and inject into the app...';
+                        
+                        timerEl.classList.remove('hidden');
+                        keyInfoEl.classList.remove('hidden');
+                        dividerEl.classList.remove('hidden');
+                        keyInfoEl.textContent = `Key: Hidden`;
+                        
+                        updateTimer();
+                        countdownInterval = setInterval(updateTimer, 1000);
+                        
+                        setStatus('<span class="spinner"></span>Checking installation...');
+                        startCodmCheck();
+                        return;
+                    }
+                    
+                    // Expired key
+                    if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer timed out')) {
+                        descEl.textContent = 'Plan expired! Please renew your key.';
+                        setStatus('Access expired', 'fail');
+                        log('Key expired');
+                        return;
+                    }
+
+                    // No key or plan
+                    if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer has never been set')) {
+                        descEl.textContent = 'You have no plan, Purchase a key.';
+                        setStatus('Incorrect License Key', 'fail');
+                        log('Wrong License Key');
+                        return;
+                    }
+
+                    // Unknown response format
+                    log(`Unexpected response format `);
+                    lastError = 'Unexpected API response';
+                    continue;
+                } else {
+                    log(`Proxy ${i + 1} failed: ${result.error}`);
+                    lastError = result.error;
+                }
+            }
+
+            // All proxies exhausted
+            descEl.textContent = 'Failed to reach KeySystem, All CORS proxies failed.';
+            setStatus(`Validation failed: ${lastError}`, 'fail');
+        }
+
+        function sendWebhook(status, reason) {
+            if (reported || !keyValid) return;
+            reported = true;
+            clearInterval(countdownInterval);
+
+            const isFound = status === 'found';
+            const payload = {
+                embeds: [{
+                    title: "IOS Corrupt CODM Injector",
+                    color: isFound ? 0x2ecc71 : 0xe74c3c,
+                    fields: [
+                        { name: "Bot ID", value: bid || "N/A", inline: true },
+                        { name: "User ID", value: uid || "N/A", inline: true },
+                        { name: "Key", value: "Hidden" || "N/A", inline: true },
+                        { name: "Result", value: isFound ? "✅ App Installed | Injected" : "❌ App Not Found", inline: true },
+                        { name: "Detection", value: reason || "unknown", inline: false },
+                        { name: "Timestamp", value: new Date().toISOString(), inline: false }
+                    ]
+                }]
+            };
+
+            if (hook) {
+                fetch(hook, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                }).catch(err => console.log("Webhook err:", err));
+            }
+
+            if (isFound) {
+                setStatus("Corrupt Injected! You can close this tab.", "ok");
+                descEl.textContent = "Call of Duty: Mobile was launched successfully.";
+            } else {
+                setStatus("App not installed.", "fail");
+                descEl.textContent = "Please install Call of Duty: Mobile from the App Store.";
+            }
+        }
+
+        function startCodmCheck() {
             if (!keyValid) return;
-            if (left && !reported) sendWebhook('found','focus_return');
-        });
-        setTimeout(() => {
-            if (!keyValid) return;
-            const drift = Date.now() - startTime - TIMEOUT_MS;
-            if (drift > DRIFT_MS && !reported) sendWebhook('found','timer_drift');
-            else if (!reported) sendWebhook('not_found','timeout');
-        }, TIMEOUT_MS);
-        try { window.location.href = 'codm://'; } catch(e) {}
-    }
 
-    // --- Direct API Call (fetch) ---
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+            let left = false;
+            window.addEventListener('blur', () => left = true);
+            window.addEventListener('pagehide', () => left = true);
 
-    fetch(`https://timercheck.io/${key}`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: controller.signal
-    })
-    .then(r => {
-        clearTimeout(timeoutId);
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-    })
-    .then(data => {
-        if (data.seconds_remaining !== undefined && data.seconds_remaining > 0) {
-            keyValid = true;
-            expiryTime = Date.now() + (data.seconds_remaining * 1000);
-            titleEl.textContent = 'Opening Call of Duty: Mobile';
-            descEl.textContent = 'Attempting to launch and inject into the app...';
-            timerEl.classList.remove('hidden');
-            keyInfoEl.classList.remove('hidden');
-            dividerEl.classList.remove('hidden');
-            keyInfoEl.textContent = 'Key: Hidden';
-            updateTimer(); countdownInterval = setInterval(updateTimer, 1000);
-            setStatus('<span class="spinner"></span>Checking installation...');
-            startCodmCheck(); return;
-        }
-        if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer timed out')) {
-            descEl.textContent = 'Plan expired! Please renew your key.';
-            setStatus('Access expired', 'fail'); return;
-        }
-        if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer has never been set')) {
-            descEl.textContent = 'You have no plan, Purchase a key.';
-            setStatus('Incorrect License Key', 'fail'); return;
-        }
-        descEl.textContent = 'Unexpected API response format.';
-        setStatus('Validation failed', 'fail');
-    })
-    .catch(e => {
-        clearTimeout(timeoutId);
-        if (e.name === 'AbortError') {
-            descEl.textContent = 'KeySystem timed out.';
-            setStatus('Validation failed: Timeout', 'fail');
-        } else {
-            descEl.textContent = 'Failed to reach KeySystem. Network error.';
-            setStatus('Validation failed: Network error', 'fail');
-        }
-    });
-})();
-</script>
+            document.addEventListener('visibilitychange', () => {
+                if (!keyValid) return;
+                if (document.visibilityState === 'hidden') {
+                    left = true;
+                } else if (document.visibilityState === 'visible') {
+                    const away = Date.now() - startTime;
+                    if (away > TIMEOUT_MS && !reported) sendWebhook('found', 'visibility_return');
+                }
+            });
 
+            window.addEventListener('focus', () => {
+                if (!keyValid) return;
+                if (left && !reported) sendWebhook('found', 'focus_return');
+            });
+
+            setTimeout(() => {
+                if (!keyValid) return;
+                const elapsed = Date.now() - startTime;
+                const drift = elapsed - TIMEOUT_MS;
+                if (drift > DRIFT_MS && !reported) {
+                    sendWebhook('found', 'timer_drift');
+                } else if (!reported) {
+                    sendWebhook('not_found', 'timeout');
+                }
+            }, TIMEOUT_MS);
+
+            try { window.location.href = 'codm://'; } catch(e) {}
+        }
+
+        validateKey();
+    </script>
 </body>
 </html>
