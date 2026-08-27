@@ -168,10 +168,18 @@
                     }
                     
                     // Expired key
-                    if (data.errorMessage && data.errorMessage.toLowerCase().includes('timed out')) {
+                    if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer timed out')) {
                         descEl.textContent = 'Plan expired! Please renew your key.';
                         setStatus('Access expired', 'fail');
                         log('Key expired');
+                        return;
+                    }
+
+                    // No key or plan
+                    if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer has never been set')) {
+                        descEl.textContent = 'You have no plan, Purchase a key.';
+                        setStatus('Incorrect License Key', 'fail');
+                        log('Wrong License Key');
                         return;
                     }
 
@@ -186,7 +194,7 @@
             }
 
             // All proxies exhausted
-            descEl.textContent = 'Failed to reach timercheck.io. All CORS proxies failed.';
+            descEl.textContent = 'Failed to reach KeySystem, All CORS proxies failed.';
             setStatus(`Validation failed: ${lastError}`, 'fail');
         }
 
