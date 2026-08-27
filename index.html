@@ -108,7 +108,22 @@
             const target = encodeURIComponent(`https://timercheck.io/${timerKey}`);
             const targetRaw = `https://timercheck.io/${timerKey}`;
             return [
-                `https://api.allorigins.win/raw?url=${target}`  // allorigins fallback
+                `https://api.allorigins.win/raw?url=${target}`, // allorigins fallback
+                `https://corsproxy.io{targetEncoded}`,                   // corsproxy.io (Premium/Free Tier)
+                `https://allorigins.win{targetEncoded}`,         // AllOrigins (Open Source & Fast)
+                `https://killcors.com{targetEncoded}`,            // KillCORS Gateway
+    
+    // --- Category 2: Request Query Proxies (Uses Explicit Param Keys) ---
+                `https://codetabs.com{targetRaw}`,        // CodeTabs Proxy
+                `https://htmldriven.com{targetRaw}`,         // HTMLDriven Public Node Proxy
+    
+    // --- Category 3: Path Prepend Proxies (Requires Appended Paths) ---
+                 `https://cors.sh{targetRaw}`,                          // CORS.sh Public Pool
+                 `https://freeboard.io{targetRaw}`,          // ThingProxy (<100KB Payload 
+                 `https://corsfix.com{targetRaw}`,                     // Corsfix Gateway
+    
+    // --- Category 4: Sandbox & Activation Fallbacks ---
+                 `https://herokuapp.com{targetRaw}`             // Requires tempor
             ];
         }
 
