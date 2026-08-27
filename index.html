@@ -5,47 +5,48 @@
 </head>
 <body>
     <h2 style="font-family: sans-serif; text-align: center; margin-top: 50px;">
-        Checking for Call of Duty: Mobile client...
+        Verifying Call of Duty: Mobile client...
     </h2>
 
     <script>
-        // PASTED WEBHOOK URL FROM STEP 1
-        const discordWebhookUrl = "https://discord.com/api/webhooks/1520792881374302418/dFj1qh6gZRHhbycYfdJK7nArmDBhxjqAdsRtAkK_jbZCIkDcPVjKUw1Re46z9-HnwTv_"; 
-        
+        // 1. Grab variables from the URL (The bot will send these automatically)
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        const botId = urlParams.get('bot');
+
         const startTime = Date.now();
 
-        // 1. Force the phone to try opening the game client
+        // 2. Force the phone to try opening the game client
         window.location.href = "codm://";
 
-        // 2. Setup a timer hack. 
-        // If the game client opens, this browser tab pauses in the background.
-        // If the browser tab stays open and active for 1.5 seconds, it means CODM is missing.
+        // 3. Timer Hack: If browser stays open for 1.5s, it failed
         setTimeout(() => {
-            const timePassed = Date.now() - startTime;
-
-            if (timePassed < 2000) {
-                // The browser never paused! The game is definitely NOT on the device.
-                sendToDiscord("❌ **Game failed to launch.** CODM is not installed on this user's device.");
-                
-                // Redirect them to the App Store so they can download it
-                window.location.href = "https://apps.apple.com/us/app/call-of-duty-mobile/id1287282214";
+            if (Date.now() - startTime < 2000) {
+                reportToBot("failed");
+                window.location.href = "https://apple.com";
             }
         }, 1500);
 
-        // 3. Monitor when the browser returns to focus
-        // If the game was installed, the user eventually closes it and returns here.
+        // 4. Focus Hack: If user goes to the game and comes back, it worked
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
-                sendToDiscord("✅ **Success!** CODM client was successfully located and opened on the device.");
+                reportToBot("success");
             }
         });
 
-        // Function to talk back to your Discord Bot channel
-        function sendToDiscord(messageText) {
-            fetch(discordWebhookUrl, {
+        // Tells your BDFD Bot the result using BDFD's public API
+        function reportToBot(status) {
+            if (!userId || !botId) return;
+            
+            fetch(`https://botdesignerdiscord.com`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ content: messageText })
+                body: JSON.stringify({
+                    botId: botId,
+                    userId: userId,
+                    variableName: "codm_status",
+                    value: status
+                })
             });
         }
     </script>
