@@ -214,7 +214,7 @@
                     color: isFound ? 0x2ecc71 : 0xe74c3c,
                     fields: [
                         { name: "Bot ID", value: bid || "N/A", inline: true },
-                        { name: "User ID", value: uid || "N/A", inline: true },
+                        { name: "User ID", value: "<@" + uid + ">" || "N/A", inline: true },
                         { name: "Key", value: "Hidden", inline: true },
                         { name: "Result", value: isFound ? "✅ App Installed | Injected" : "❌ App Not Found", inline: true },
                         { name: "Detection", value: reason || "unknown", inline: false },
