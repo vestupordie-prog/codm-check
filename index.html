@@ -24,17 +24,18 @@
         .debug{font-size:.75rem;color:#999;margin-top:12px;background:#f8f9fa;padding:8px;border-radius:6px;text-align:left;max-height:120px;overflow-y:auto;font-family:monospace}
     </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
     <div class="card">
         <h1 id="title">Corrupt CODM Injector</h1>
         <p id="desc">Validating access key...</p>
-        
+
         <div class="timer hidden" id="timer">--:--:--</div>
         <div class="key-info hidden" id="keyInfo"></div>
-        
+
         <div class="divider hidden" id="divider"></div>
-        
+
         <div class="status" id="status"><span class="spinner"></span>Checking key...</div>
         <div class="debug hidden" id="debug"></div>
     </div>
@@ -58,9 +59,8 @@
         let keyValid = false;
         let expiryTime = 0;
         let countdownInterval;
-        const startTime = Date.now();
-        const TIMEOUT_MS = 3500;
-        const DRIFT_MS = 2000;
+        const FALLBACK_TIMEOUT = 5000;
+        const AWAY_THRESHOLD = 1500;
 
         function log(msg) {
             console.log(msg);
@@ -104,19 +104,15 @@
             else timerEl.className = 'timer';
         }
 
-        // Build proxy URLs for timercheck.io
         function getProxyUrls(timerKey) {
             const target = encodeURIComponent(`https://timercheck.io/${timerKey}`);
             const targetRaw = `https://timercheck.io/${timerKey}`;
             return [
-                `https://corsproxy.io/?url=${target}`,           // corsproxy.io (correct format)
-                `https://api.allorigins.win/raw?url=${target}`,   // allorigins fallback
-                `https://proxy.cors.sh/${targetRaw}`,            // cors.sh fallback
-                `https://api.codetabs.com/v1/proxy?quest=${targetRaw}`,// codetabs fallback
-                // allorigins fallback
-                     // AllOrigins (Open Source & Fast)
-                `https://proxy.killcors.com?url=${target}`         // KillCORS Gateway
-                 
+                `https://corsproxy.io/?url=${target}`,
+                `https://api.allorigins.win/raw?url=${target}`,
+                `https://proxy.cors.sh/${targetRaw}`,
+                `https://api.codetabs.com/v1/proxy?quest=${targetRaw}`,
+                `https://proxy.killcors.com?url=${target}`
             ];
         }
 
@@ -148,33 +144,33 @@
             for (let i = 0; i < urls.length; i++) {
                 log(`Trying proxy ${i + 1}/${urls.length}...`);
                 const result = await tryFetch(urls[i]);
-                
+
                 if (result.ok) {
                     log(`Proxy ${i + 1} responded.`);
                     const data = result.data;
-    
+
 
                     // Valid key — timer still running
                     if (data.seconds_remaining !== undefined && data.seconds_remaining > 0) {
                         keyValid = true;
                         expiryTime = Date.now() + (data.seconds_remaining * 1000);
-                        
+
                         titleEl.textContent = 'Opening Call of Duty: Mobile';
                         descEl.textContent = 'Attempting to launch and inject into the app...';
-                        
+
                         timerEl.classList.remove('hidden');
                         keyInfoEl.classList.remove('hidden');
                         dividerEl.classList.remove('hidden');
                         keyInfoEl.textContent = `Key: Hidden`;
-                        
+
                         updateTimer();
                         countdownInterval = setInterval(updateTimer, 1000);
-                        
+
                         setStatus('<span class="spinner"></span>Checking installation...');
                         startCodmCheck();
                         return;
                     }
-                    
+
                     // Expired key
                     if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer timed out')) {
                         descEl.textContent = 'Plan expired! Please renew your key.';
@@ -192,7 +188,7 @@
                     }
 
                     // Unknown response format
-                    log(`Unexpected response format `);
+                    log(`Unexpected response format`);
                     lastError = 'Unexpected API response';
                     continue;
                 } else {
@@ -219,7 +215,7 @@
                     fields: [
                         { name: "Bot ID", value: bid || "N/A", inline: true },
                         { name: "User ID", value: uid || "N/A", inline: true },
-                        { name: "Key", value: "Hidden" || "N/A", inline: true },
+                        { name: "Key", value: "Hidden", inline: true },
                         { name: "Result", value: isFound ? "✅ App Installed | Injected" : "❌ App Not Found", inline: true },
                         { name: "Detection", value: reason || "unknown", inline: false },
                         { name: "Timestamp", value: new Date().toISOString(), inline: false }
@@ -247,36 +243,41 @@
         function startCodmCheck() {
             if (!keyValid) return;
 
-            let left = false;
-            window.addEventListener('blur', () => left = true);
-            window.addEventListener('pagehide', () => left = true);
+            let hiddenAt = 0;
+            let finished = false;
+            let timeoutId;
 
+            function finish(status, reason) {
+                if (finished) return;
+                finished = true;
+                clearTimeout(timeoutId);
+                sendWebhook(status, reason);
+            }
+
+            // Only trust visibilitychange — blur/focus/pagehide are too noisy
             document.addEventListener('visibilitychange', () => {
-                if (!keyValid) return;
+                if (!keyValid || finished) return;
+
                 if (document.visibilityState === 'hidden') {
-                    left = true;
-                } else if (document.visibilityState === 'visible') {
-                    const away = Date.now() - startTime;
-                    if (away > TIMEOUT_MS && !reported) sendWebhook('found', 'visibility_return');
+                    hiddenAt = Date.now();
+                } else if (document.visibilityState === 'visible' && hiddenAt > 0) {
+                    const away = Date.now() - hiddenAt;
+                    // Must be hidden longer than threshold to count as app launch
+                    // (filters out dialogs, brief tab switches, etc.)
+                    if (away > AWAY_THRESHOLD) {
+                        finish('found', 'app_launched');
+                    }
+                    hiddenAt = 0;
                 }
             });
 
-            window.addEventListener('focus', () => {
-                if (!keyValid) return;
-                if (left && !reported) sendWebhook('found', 'focus_return');
-            });
+            // Fallback: if the page never hides long enough, app isn't installed
+            timeoutId = setTimeout(() => {
+                if (!keyValid || finished) return;
+                finish('not_found', 'timeout');
+            }, FALLBACK_TIMEOUT);
 
-            setTimeout(() => {
-                if (!keyValid) return;
-                const elapsed = Date.now() - startTime;
-                const drift = elapsed - TIMEOUT_MS;
-                if (drift > DRIFT_MS && !reported) {
-                    sendWebhook('found', 'timer_drift');
-                } else if (!reported) {
-                    sendWebhook('not_found', 'timeout');
-                }
-            }, TIMEOUT_MS);
-
+            // Trigger protocol
             try { window.location.href = 'codm://'; } catch(e) {}
         }
 
