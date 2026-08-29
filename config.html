@@ -1,0 +1,1711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>CORRUPT · CODM Loadout Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CORRUPT — Tactical HUD design system
+   Palette: void black + signal orange + telemetry cyan
+   Display: Rajdhani (stenciled, operator-console feel)
+   Body: Inter · Data: JetBrains Mono
+   Signature: HUD lock-on corner brackets on active/selected states
+   ============================================================ */
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+:root{
+  --bg:#08090b;
+  --bg-1:#0e1013;
+  --panel:#121519;
+  --panel-2:#171b20;
+  --line:rgba(255,255,255,0.07);
+  --line-strong:rgba(255,255,255,0.14);
+  --text:#eef0f2;
+  --text-dim:#8d95a0;
+  --text-faint:#565d67;
+
+  --accent:#ff5a1f;      /* signal orange — primary action / MP */
+  --accent-2:#ff7a45;
+  --accent-soft:rgba(255,90,31,0.12);
+  --cyan:#3fd6e8;        /* telemetry cyan — data/scopes */
+  --cyan-soft:rgba(63,214,232,0.12);
+  --green:#4fe6a6;       /* success / recommended */
+  --green-soft:rgba(79,230,166,0.12);
+  --amber:#ffb347;       /* warning / meta tier */
+  --amber-soft:rgba(255,179,71,0.12);
+  --danger:#ff4661;
+  --gold:#f0c352;
+  --br:#ff8a3d;          /* battle royale mode */
+  --zombie:#8dfb5c;      /* zombies mode */
+  --purple:#b39dff;
+
+  --radius-lg:18px;
+  --radius-md:13px;
+  --radius-sm:9px;
+  --font-display:'Rajdhani', sans-serif;
+  --font-body:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:'JetBrains Mono', 'Courier New', monospace;
+}
+
+@keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+@keyframes softPulse{ 0%,100%{opacity:1;} 50%{opacity:.55;} }
+@keyframes ringSpin{ from{transform:rotate(0);} to{transform:rotate(360deg);} }
+@keyframes scanline{ 0%{transform:translateY(-100%);} 100%{transform:translateY(100%);} }
+@keyframes toastIn{ from{opacity:0; transform:translate(-50%,14px);} to{opacity:1; transform:translate(-50%,0);} }
+@keyframes accentGlow{ 0%,100%{box-shadow:0 0 0 1px var(--accent), 0 0 18px rgba(255,90,31,.25);} 50%{box-shadow:0 0 0 1px var(--accent), 0 0 28px rgba(255,90,31,.4);} }
+
+html{ background:var(--bg); }
+body{
+  font-family:var(--font-body); background:var(--bg); color:var(--text);
+  min-height:100vh; overflow-x:hidden;
+  padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
+  background-image:
+    radial-gradient(ellipse 600px 300px at 15% -5%, rgba(255,90,31,0.09), transparent 60%),
+    radial-gradient(ellipse 500px 260px at 100% 10%, rgba(63,214,232,0.07), transparent 60%);
+}
+.container{ max-width:430px; margin:0 auto; padding:0 14px 90px; }
+
+/* ---------- HEADER ---------- */
+.topbar{
+  position:sticky; top:0; z-index:40;
+  background:linear-gradient(180deg, rgba(8,9,11,.97) 70%, rgba(8,9,11,.85));
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{ max-width:430px; margin:0 auto; padding:16px 14px 12px; }
+.brand-row{ display:flex; align-items:center; justify-content:space-between; }
+.brand{ display:flex; align-items:center; gap:10px; }
+.brand-mark{ width:34px; height:34px; border:1.5px solid var(--accent); border-radius:8px; display:flex; align-items:center; justify-content:center; position:relative; flex-shrink:0; }
+.brand-mark::before, .brand-mark::after{ content:''; position:absolute; width:5px; height:5px; border-radius:50%; background:var(--accent); }
+.brand-mark::before{ box-shadow:0 0 8px var(--accent); }
+.brand-mark svg{ width:18px; height:18px; }
+.brand-text .name{ font-family:var(--font-display); font-weight:700; font-size:19px; letter-spacing:2px; line-height:1; color:var(--text); }
+.brand-text .name span{ color:var(--accent); }
+.brand-text .tag{ font-family:var(--font-mono); font-size:9px; letter-spacing:2px; color:var(--text-faint); margin-top:3px; text-transform:uppercase; }
+.build-pill{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:1px; color:var(--cyan); background:var(--cyan-soft); border:1px solid rgba(63,214,232,.3); padding:5px 9px; border-radius:20px; white-space:nowrap; }
+
+.mode-toggle{ display:flex; background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:3px; margin-top:14px; gap:3px; }
+.mode-btn{ flex:1; padding:9px 6px; border:none; background:transparent; color:var(--text-dim); font-family:var(--font-display); font-weight:600; font-size:13px; letter-spacing:.8px; border-radius:8px; cursor:pointer; transition:all .2s; }
+.mode-btn.active{ background:var(--accent); color:#0a0a0a; }
+.mode-btn.br.active{ background:var(--br); color:#0a0a0a; }
+.mode-btn.zombie.active{ background:var(--zombie); color:#0a0a0a; }
+
+/* ---------- SUB NAV ---------- */
+.nav{ display:flex; gap:6px; margin:14px 0 4px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; }
+.nav::-webkit-scrollbar{ display:none; }
+.nav-btn{ padding:9px 15px; background:var(--panel); border:1px solid var(--line); border-radius:20px; color:var(--text-dim); font-family:var(--font-display); font-size:12.5px; font-weight:600; letter-spacing:.6px; cursor:pointer; white-space:nowrap; transition:all .2s; }
+.nav-btn.active{ background:var(--text); border-color:var(--text); color:#0a0a0a; }
+
+.news-ticker{ background:var(--accent-soft); border:1px solid rgba(255,90,31,.25); border-left:3px solid var(--accent); padding:11px 13px; margin:14px 0 16px; border-radius:0 10px 10px 0; font-size:11.5px; color:var(--text-dim); line-height:1.5; }
+.news-ticker strong{ color:var(--accent-2); font-family:var(--font-display); letter-spacing:.5px; }
+
+/* ---------- CARDS ---------- */
+.card{ background:var(--panel); border-radius:var(--radius-lg); padding:20px; margin-bottom:14px; border:1px solid var(--line); animation:fadeUp .35s ease; }
+.card-title{ font-family:var(--font-display); font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:2px; color:var(--text); margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.card-title::before{ content:''; width:3px; height:14px; background:var(--accent); border-radius:2px; flex-shrink:0; }
+
+.aim-type-tabs{ display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:4px; }
+.aim-type-tab{ padding:7px 13px; background:var(--panel); border:1px solid var(--line); border-radius:15px; color:var(--text-dim); font-size:10.5px; font-weight:600; letter-spacing:.5px; cursor:pointer; white-space:nowrap; transition:all .2s; font-family:var(--font-body); }
+.aim-type-tab.active{ background:var(--green-soft); color:var(--green); border-color:rgba(79,230,166,.4); }
+
+/* config cards — signature HUD corner brackets on selection */
+.config-card{
+  position:relative; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-md);
+  padding:17px 18px; margin-bottom:11px; cursor:pointer; transition:border-color .2s, background .2s, transform .15s;
+  overflow:hidden;
+}
+.config-card:active{ transform:scale(.985); }
+.config-card::before, .config-card::after{ content:''; position:absolute; width:14px; height:14px; border:2px solid var(--green); opacity:0; transition:opacity .2s; pointer-events:none; }
+.config-card::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; border-radius:3px 0 0 0; }
+.config-card::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; border-radius:0 0 3px 0; }
+.config-card.active{ border-color:rgba(79,230,166,.35); background:linear-gradient(135deg, var(--green-soft), transparent 60%); }
+.config-card.active::before, .config-card.active::after{ opacity:1; }
+.config-card.featured-card{ border-color:rgba(240,195,82,.35); background:linear-gradient(135deg, rgba(240,195,82,.08), transparent 60%); }
+.config-card.br-card{ border-left:3px solid var(--br); }
+.config-card.zombie-card{ border-left:3px solid var(--zombie); }
+.config-card:hover{ border-color:var(--line-strong); }
+
+.featured-tag{ position:absolute; top:12px; right:14px; background:var(--gold); color:#0a0a0a; font-family:var(--font-display); font-size:9.5px; font-weight:700; letter-spacing:1px; padding:3px 9px; border-radius:6px; }
+.config-name{ font-family:var(--font-display); font-size:17px; font-weight:700; color:var(--text); margin-bottom:4px; padding-right:70px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.config-desc{ font-size:12px; color:var(--text-dim); margin-bottom:12px; line-height:1.4; }
+.config-stats{ display:flex; gap:12px; font-family:var(--font-mono); font-size:10.5px; color:var(--cyan); flex-wrap:wrap; }
+.config-stats span{ background:var(--cyan-soft); padding:2px 7px; border-radius:5px; }
+
+.sticky-badge{ display:inline-block; padding:2px 8px; background:var(--green-soft); color:var(--green); font-size:9.5px; font-weight:700; border-radius:10px; border:1px solid rgba(79,230,166,.3); font-family:var(--font-mono); letter-spacing:.5px; }
+
+.settings-box{ background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px 18px; margin-top:14px; font-family:var(--font-mono); font-size:12px; line-height:1.9; }
+.setting-category{ color:var(--accent-2); font-weight:700; margin-top:14px; margin-bottom:4px; font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase; }
+.setting-category:first-child{ margin-top:0; }
+.setting-line{ display:flex; justify-content:space-between; padding:3px 0; color:var(--text-dim); font-size:11.5px; }
+.setting-value{ color:var(--text); font-weight:700; }
+
+.formula-box{ background:var(--bg-1); border:1px dashed rgba(255,90,31,.35); border-radius:var(--radius-md); padding:14px 16px; margin-top:14px; font-family:var(--font-mono); font-size:11px; }
+.formula-title{ color:var(--accent-2); font-weight:700; margin-bottom:7px; font-size:11px; letter-spacing:.5px; }
+
+.copy-btn{ width:100%; padding:14px; background:var(--panel-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); color:var(--cyan); font-family:var(--font-display); font-size:13px; font-weight:700; letter-spacing:1px; cursor:pointer; margin-top:12px; text-transform:uppercase; transition:all .2s; }
+.copy-btn:active{ transform:scale(.97); border-color:var(--cyan); }
+.action-btn{ width:100%; padding:16px; background:var(--accent); border:none; border-radius:var(--radius-sm); color:#0a0a0a; font-family:var(--font-display); font-size:15px; font-weight:700; letter-spacing:1px; cursor:pointer; margin-top:10px; text-transform:uppercase; transition:transform .15s, filter .2s; }
+.action-btn:active{ transform:scale(.97); filter:brightness(.92); }
+.action-btn.ghost{ background:transparent; border:1.5px solid var(--accent); color:var(--accent); }
+
+.weapon-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:9px; margin-top:14px; }
+.weapon-btn{ position:relative; padding:14px 12px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--text); font-family:var(--font-display); font-size:13.5px; font-weight:600; cursor:pointer; text-align:left; transition:all .2s; }
+.weapon-btn::before, .weapon-btn::after{ content:''; position:absolute; width:11px; height:11px; border:2px solid var(--accent); opacity:0; transition:opacity .2s; pointer-events:none; }
+.weapon-btn::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+.weapon-btn::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+.weapon-btn:hover{ border-color:var(--line-strong); }
+.weapon-btn.active{ border-color:rgba(255,90,31,.4); background:var(--accent-soft); }
+.weapon-btn.active::before, .weapon-btn.active::after{ opacity:1; }
+.weapon-category{ font-family:var(--font-mono); font-size:9.5px; color:var(--text-faint); margin-top:5px; letter-spacing:.5px; text-transform:uppercase; }
+
+.section{ display:none; }
+.section.active{ display:block; }
+
+.toast{ position:fixed; bottom:96px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--panel-2); padding:13px 20px; border-radius:11px; border:1px solid var(--line-strong); color:var(--text); font-family:var(--font-body); font-weight:600; font-size:13px; z-index:99999; opacity:0; transition:all .25s; display:flex; align-items:center; gap:8px; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+.toast::before{ content:'●'; color:var(--green); font-size:10px; }
+.toast.error::before{ color:var(--danger); }
+.toast.show{ opacity:1; transform:translate(-50%,0); }
+.toast.error{ border-color:rgba(255,70,97,.4); }
+
+.search-box{ width:100%; padding:12px 16px; background:var(--panel); border:1px solid var(--line); border-radius:12px; color:var(--text); font-size:13.5px; margin-bottom:12px; font-family:var(--font-body); transition:border-color .2s; }
+.search-box::placeholder{ color:var(--text-faint); }
+.search-box:focus{ outline:none; border-color:var(--accent); }
+
+.filter-tabs{ display:flex; gap:7px; margin-bottom:14px; overflow-x:auto; padding-bottom:5px; }
+.filter-tab{ padding:8px 15px; background:var(--panel); border:1px solid var(--line); border-radius:18px; color:var(--text-dim); font-size:10.5px; font-weight:700; letter-spacing:.5px; cursor:pointer; white-space:nowrap; transition:all .2s; }
+.filter-tab.active{ background:var(--accent); color:#0a0a0a; border-color:var(--accent); }
+
+.stat-bar{ display:flex; align-items:center; gap:10px; margin:9px 0; }
+.stat-label{ width:72px; font-size:10.5px; color:var(--text-dim); font-family:var(--font-mono); }
+.stat-track{ flex:1; height:6px; background:var(--bg-1); border-radius:3px; overflow:hidden; }
+.stat-fill{ height:100%; border-radius:3px; transition:width .6s ease; }
+.stat-fill.damage{ background:var(--accent); }
+.stat-fill.fire-rate{ background:var(--cyan); }
+.stat-fill.accuracy{ background:var(--green); }
+.stat-fill.range{ background:var(--amber); }
+.stat-fill.mobility{ background:var(--purple); }
+.stat-value-num{ font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); width:26px; text-align:right; }
+
+.tier-badge{ display:inline-block; padding:2px 9px; border-radius:6px; font-size:10.5px; font-family:var(--font-display); font-weight:700; letter-spacing:.5px; }
+.tier-s{ background:var(--gold); color:#0a0a0a; }
+.tier-a{ background:var(--green); color:#0a0a0a; }
+.tier-b{ background:var(--cyan); color:#0a0a0a; }
+.tier-c{ background:var(--panel-2); color:var(--text-dim); border:1px solid var(--line-strong); }
+
+.empty-state{ text-align:center; padding:44px 20px; color:var(--text-faint); }
+.empty-state .glyph{ font-size:38px; margin-bottom:14px; opacity:.4; }
+.empty-state .lead{ font-family:var(--font-display); font-size:14px; letter-spacing:.5px; color:var(--text-dim); }
+
+.sync-btn{ position:fixed; bottom:20px; right:18px; width:52px; height:52px; border-radius:14px; background:var(--accent); border:none; color:#0a0a0a; font-size:20px; cursor:pointer; box-shadow:0 6px 24px rgba(255,90,31,.35); z-index:1000; display:flex; align-items:center; justify-content:center; transition:transform .15s; }
+.sync-btn:active{ transform:scale(.92); }
+.sync-btn.syncing svg{ animation:ringSpin .9s linear infinite; }
+
+.favorite-btn{ position:absolute; top:12px; right:14px; background:none; border:none; font-size:18px; cursor:pointer; opacity:.35; transition:all .2s; color:var(--text); }
+.favorite-btn.active{ opacity:1; color:var(--accent); }
+
+.difficulty-indicator{ display:inline-flex; gap:3px; margin-left:8px; }
+.difficulty-dot{ width:5px; height:5px; border-radius:50%; background:var(--line-strong); }
+.difficulty-dot.active{ background:var(--amber); }
+
+.slider{ width:100%; height:5px; border-radius:3px; background:var(--bg-1); outline:none; -webkit-appearance:none; margin:4px 0; }
+.slider::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:17px; height:17px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 0 4px var(--accent-soft); }
+
+.result-box{ background:var(--bg-1); border:1px solid rgba(79,230,166,.3); border-radius:var(--radius-md); padding:16px; margin-top:14px; text-align:center; }
+.result-value{ font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--green); letter-spacing:1px; }
+.result-label{ font-size:11.5px; color:var(--text-dim); margin-top:5px; }
+
+.checkbox-group{ display:flex; flex-direction:column; gap:8px; margin:12px 0; }
+.checkbox-item{ display:flex; align-items:center; gap:10px; padding:11px 12px; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-sm); cursor:pointer; font-size:13px; }
+.checkbox-item input[type="checkbox"]{ width:17px; height:17px; accent-color:var(--accent); }
+
+.loadout-slots{ display:grid; grid-template-columns:repeat(5, 1fr); gap:7px; margin-top:12px; }
+.loadout-slot{ position:relative; aspect-ratio:1; background:var(--bg-1); border:1.5px solid var(--line); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; font-weight:700; cursor:pointer; transition:all .2s; padding:4px; text-align:center; }
+.loadout-slot .slot-num{ font-family:var(--font-mono); font-size:9px; color:var(--text-faint); }
+.loadout-slot .slot-name{ font-size:9px; color:var(--text-dim); margin-top:2px; line-height:1.2; }
+.loadout-slot.filled{ border-color:rgba(63,214,232,.35); background:var(--cyan-soft); }
+.loadout-slot.filled .slot-name{ color:var(--cyan); }
+.loadout-slot:active{ transform:scale(.94); }
+
+.quick-actions{ display:grid; grid-template-columns:repeat(3, 1fr); gap:9px; margin-top:18px; }
+.quick-action{ padding:14px 8px; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-sm); text-align:center; cursor:pointer; transition:all .2s; }
+.quick-action:active{ transform:scale(.95); border-color:var(--line-strong); }
+.quick-action-icon{ font-size:20px; margin-bottom:5px; }
+.quick-action-text{ font-size:9.5px; color:var(--text-dim); font-weight:600; font-family:var(--font-mono); }
+
+.attachment-item{ display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-sm); margin-bottom:7px; cursor:default; transition:all .2s; }
+.attachment-item.best{ border-color:rgba(79,230,166,.3); background:var(--green-soft); }
+.attachment-item.meta{ border-color:rgba(240,195,82,.3); background:rgba(240,195,82,.07); }
+.attachment-item.locked{ opacity:.45; }
+.attachment-name{ font-size:12.5px; font-weight:600; color:var(--text); }
+.attachment-effect{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+.level-req{ font-size:9.5px; color:var(--amber); margin-top:3px; font-family:var(--font-mono); }
+
+.tip-card{ background:var(--amber-soft); border-left:3px solid var(--amber); padding:14px 15px; margin-bottom:9px; border-radius:0 10px 10px 0; }
+.tip-title{ color:var(--amber); font-weight:700; font-size:12.5px; margin-bottom:5px; font-family:var(--font-display); letter-spacing:.4px; }
+.tip-text{ font-size:11.5px; color:var(--text-dim); line-height:1.6; }
+
+.level-tip{ background:var(--green-soft); border:1px solid rgba(79,230,166,.25); border-radius:var(--radius-md); padding:15px; margin-bottom:9px; }
+.level-tip h4{ color:var(--green); margin-bottom:7px; font-size:13.5px; font-family:var(--font-display); letter-spacing:.4px; }
+.level-tip p{ font-size:12px; color:var(--text-dim); line-height:1.5; }
+.xp-rate{ display:inline-block; margin-top:8px; padding:3px 10px; background:var(--green); color:#0a0a0a; border-radius:20px; font-size:10.5px; font-weight:700; font-family:var(--font-mono); }
+
+.calc-input{ width:100%; padding:12px 14px; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--text); margin:8px 0; font-family:var(--font-body); font-size:13px; }
+.calc-input:focus{ outline:none; border-color:var(--accent); }
+.calc-result{ font-family:var(--font-display); font-size:22px; font-weight:700; color:var(--green); text-align:center; margin-top:14px; letter-spacing:.5px; }
+
+.attachment-section{ margin-top:18px; padding-top:18px; border-top:1px solid var(--line); }
+.attachment-title{ font-family:var(--font-display); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px; }
+.legend-item{ display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--text-dim); }
+.legend-dot{ width:7px; height:7px; border-radius:50%; }
+.legend-dot.best{ background:var(--green); }
+.legend-dot.meta{ background:var(--gold); }
+.legend-dot.locked{ background:var(--text-faint); }
+.attachment-legend{ display:flex; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
+
+.pro-tip{ background:rgba(240,195,82,.07); border:1px solid rgba(240,195,82,.25); border-radius:var(--radius-md); padding:15px; margin-top:14px; font-size:12px; }
+.pro-tip-title{ color:var(--gold); font-weight:700; margin-bottom:6px; font-family:var(--font-display); font-size:13px; letter-spacing:.4px; }
+.pro-tip div{ color:var(--text-dim); line-height:1.6; }
+
+.slider-container{ margin:16px 0; }
+.slider-label{ display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:6px; color:var(--text-dim); font-family:var(--font-mono); }
+.slider-label span:last-child{ color:var(--text); font-weight:700; }
+
+.dropdown{ width:100%; padding:12px 14px; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--text); font-size:13.5px; margin-bottom:10px; cursor:pointer; font-family:var(--font-body); }
+.dropdown:focus{ outline:none; border-color:var(--accent); }
+
+.ads-time-calculator, .comparison-tool{ background:var(--bg-1); border-radius:var(--radius-md); padding:16px; margin-top:16px; border:1px solid var(--line); }
+.compare-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px; }
+.compare-row:last-child{ border-bottom:none; }
+.compare-row button{ background:var(--danger); border:none; color:#fff; padding:5px 11px; border-radius:7px; cursor:pointer; font-size:11px; font-weight:600; }
+
+.sensitivity-breakdown{ background:var(--cyan-soft); border:1px solid rgba(63,214,232,.25); border-radius:var(--radius-md); padding:15px; margin-top:14px; }
+.breakdown-title{ color:var(--cyan); font-weight:700; font-size:12.5px; margin-bottom:9px; font-family:var(--font-display); letter-spacing:.4px; }
+.breakdown-text{ font-size:11.5px; color:var(--text-dim); line-height:1.7; }
+.breakdown-text strong{ color:var(--text); }
+
+.scope-grid{ display:grid; grid-template-columns:1fr; gap:8px; margin-top:14px; }
+.scope-item{ display:flex; justify-content:space-between; align-items:center; padding:11px 14px; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-sm); }
+.scope-name{ font-size:12px; color:var(--text-dim); }
+.scope-value{ font-family:var(--font-mono); font-size:13.5px; font-weight:700; color:var(--cyan); }
+
+.aim-type-tabs.small .aim-type-tab{ font-size:10px; }
+.ai-suggestion{ background:linear-gradient(135deg, var(--cyan-soft), transparent 70%); border:1px solid rgba(63,214,232,.35); border-radius:var(--radius-md); padding:15px; margin-top:14px; }
+.ai-title{ color:var(--cyan); font-weight:700; font-size:12.5px; margin-bottom:8px; display:flex; align-items:center; gap:6px; font-family:var(--font-display); letter-spacing:.5px; }
+.ai-content{ font-size:12.5px; color:var(--text); line-height:1.6; }
+.calculation-steps{ background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:10px; font-family:var(--font-mono); font-size:9.5px; color:var(--text-faint); line-height:1.6; }
+.formula-display{ background:var(--bg); border:1px dashed rgba(255,90,31,.35); border-radius:8px; padding:11px 13px; margin:10px 0; font-family:var(--font-mono); font-size:10.5px; color:var(--accent-2); word-break:break-word; }
+
+.device-selector{ display:grid; grid-template-columns:repeat(2, 1fr); gap:9px; margin:14px 0; }
+.device-option{ padding:12px; background:var(--bg-1); border:1px solid var(--line); border-radius:var(--radius-sm); text-align:center; cursor:pointer; transition:all .2s; font-size:12.5px; font-weight:600; }
+.device-option.active{ border-color:rgba(79,230,166,.4); background:var(--green-soft); color:var(--green); }
+
+.sens-presets{ display:flex; gap:7px; margin:10px 0; flex-wrap:wrap; }
+.sens-preset{ padding:7px 14px; background:var(--bg-1); border:1px solid var(--line); border-radius:16px; font-size:11px; font-weight:600; cursor:pointer; transition:all .2s; }
+.sens-preset.active{ background:var(--accent); color:#0a0a0a; border-color:var(--accent); }
+
+.multiplier-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
+.mult-item{ background:var(--bg-1); border:1px solid var(--line); padding:9px 4px; border-radius:8px; text-align:center; }
+.mult-value{ font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--cyan); }
+.mult-label{ font-size:8.5px; color:var(--text-faint); margin-top:3px; }
+
+.sensitivity-matrix{ display:grid; grid-template-columns:repeat(4, 1fr); gap:5px; margin-top:12px; font-size:10px; }
+.matrix-cell{ background:var(--bg-1); border:1px solid var(--line); padding:9px 4px; border-radius:6px; text-align:center; }
+.matrix-header{ color:var(--text-faint); font-size:8.5px; background:transparent; border:none; font-family:var(--font-mono); }
+.matrix-value{ color:var(--cyan); font-weight:700; font-size:11px; margin-top:2px; font-family:var(--font-mono); }
+
+.rage-feature{ background:linear-gradient(135deg, rgba(255,70,97,.12), rgba(255,90,31,.05)); border:1px solid rgba(255,70,97,.3); border-radius:var(--radius-lg); padding:17px; margin:0 0 14px; }
+.rage-title{ color:var(--danger); font-weight:700; font-size:14px; margin-bottom:12px; text-transform:uppercase; font-family:var(--font-display); letter-spacing:1.5px; }
+.rage-feature .attachment-item{ cursor:pointer; }
+.rage-feature .attachment-item:active{ transform:scale(.98); }
+.one-shot-badge{ background:var(--danger); color:#fff; font-size:9px; padding:2px 7px; border-radius:9px; margin-left:6px; font-family:var(--font-mono); }
+.wallbang-badge{ background:var(--br); color:#0a0a0a; font-size:9px; padding:2px 7px; border-radius:9px; margin-left:6px; font-family:var(--font-mono); }
+.no-recoil-badge{ background:var(--green); color:#0a0a0a; font-size:9px; padding:2px 7px; border-radius:9px; margin-left:6px; font-family:var(--font-mono); }
+
+.mp-section, .br-section, .zombie-section{ display:none; }
+.mp-section.active, .br-section.active, .zombie-section.active{ display:block; }
+
+.comparison-table{ width:100%; border-collapse:collapse; margin-top:14px; font-size:12px; }
+.comparison-table th{ background:var(--bg-1); padding:9px 8px; text-align:left; font-size:10px; color:var(--text-faint); border-bottom:1px solid var(--line); text-transform:uppercase; letter-spacing:.5px; font-family:var(--font-mono); }
+.comparison-table td{ padding:9px 8px; border-bottom:1px solid var(--line); }
+.winner{ color:var(--green); font-weight:700; }
+.loser{ color:var(--text-faint); }
+
+::selection{ background:var(--accent); color:#0a0a0a; }
+::-webkit-scrollbar{ width:0; height:0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-row">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="8" stroke="#ff5a1f" stroke-width="1.6"/>
+            <circle cx="12" cy="12" r="2" fill="#ff5a1f"/>
+            <path d="M12 2V6M12 18V22M2 12H6M18 12H22" stroke="#ff5a1f" stroke-width="1.6"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="name">CORRUPT<span>.</span></div>
+          <div class="tag">CODM LOADOUT TERMINAL</div>
+        </div>
+      </div>
+      <div class="build-pill" id="buildPill">v1.5</div>
+    </div>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="switchMode('mp', event)">MULTIPLAYER</button>
+      <button class="mode-btn br" onclick="switchMode('br', event)">BATTLE ROYALE</button>
+      <button class="mode-btn zombie" onclick="switchMode('zombie', event)">ZOMBIES</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="nav">
+    <button class="nav-btn active" onclick="switchTab('configs', event)">Configs</button>
+    <button class="nav-btn" onclick="switchTab('ai', event)">AI Advisor</button>
+    <button class="nav-btn" onclick="switchTab('scopes', event)">Scopes</button>
+    <button class="nav-btn" onclick="switchTab('weapons', event)">Weapons</button>
+    <button class="nav-btn" onclick="switchTab('compare', event)">Compare</button>
+    <button class="nav-btn" onclick="switchTab('attachments', event)">Attachments</button>
+    <button class="nav-btn" onclick="switchTab('calculator', event)">Calc</button>
+    <button class="nav-btn" onclick="switchTab('formulas', event)">Formulas</button>
+    <button class="nav-btn" onclick="switchTab('rage', event)">RAGE</button>
+    <button class="nav-btn" onclick="switchTab('tips', event)">Pro Tips</button>
+  </div>
+
+  <div class="news-ticker">
+    <strong>UPDATE:</strong> All weapons catalogued · MP / BR / Zombies modes · Live compare tool · AI sensitivity advisor · Sticky-aim formulas · RAGE builds · Loadout slots now save across sessions
+  </div>
+
+  <!-- CONFIGS -->
+  <div class="section active" id="configs-section">
+    <div class="aim-type-tabs">
+      <button class="aim-type-tab active" onclick="filterAimType('all', event)">ALL</button>
+      <button class="aim-type-tab" onclick="filterAimType('sticky', event)">STICKY AIM</button>
+      <button class="aim-type-tab" onclick="filterAimType('snappy', event)">SNAPPY</button>
+      <button class="aim-type-tab" onclick="filterAimType('precision', event)">PRECISION</button>
+      <button class="aim-type-tab" onclick="filterAimType('aggressive', event)">AGGRESSIVE</button>
+    </div>
+
+    <div class="mp-section active" id="mp-configs">
+      <div class="config-card featured-card" onclick="selectConfig('stickyPro', this)">
+        <div class="featured-tag">META</div>
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'stickyPro')">♥</button>
+        <div class="config-name">🎯 Sticky Aim Pro <span class="sticky-badge">STICKY</span></div>
+        <div class="config-desc">Maximum aim-assist stickiness — tournament legal</div>
+        <div class="config-stats"><span>Cam 90</span><span>ADS 75</span><span>Gyro 35</span><span>Stick MAX</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('stickyAggro', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'stickyAggro')">♥</button>
+        <div class="config-name">🎯 Sticky Aggro <span class="sticky-badge">STICKY</span></div>
+        <div class="config-desc">High speed + sticky aim — best of both worlds</div>
+        <div class="config-stats"><span>Cam 140</span><span>ADS 120</span><span>Gyro 65</span><span>Stick HIGH</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('stickySniper', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'stickySniper')">♥</button>
+        <div class="config-name">🎯 Sticky Sniper <span class="sticky-badge">STICKY</span></div>
+        <div class="config-desc">Ultra sticky for quickscopes — magnetic aim</div>
+        <div class="config-stats"><span>Cam 50</span><span>ADS 40</span><span>Gyro 25</span><span>Stick MAX</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card active" onclick="selectConfig('snappy1', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'snappy1')">♥</button>
+        <div class="config-name">⚡ Snappy Aim v1</div>
+        <div class="config-desc">Balanced fast response — best for beginners</div>
+        <div class="config-stats"><span>Cam 140</span><span>Fire 125</span><span>Gyro 42</span><span>GyroFire 32</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('snappy2', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'snappy2')">♥</button>
+        <div class="config-name">⚡ Snappy Aim v2</div>
+        <div class="config-desc">Ultra fast camera — for aggressive players</div>
+        <div class="config-stats"><span>Cam 200</span><span>Fire 90</span><span>Gyro 80</span><span>GyroFire 70</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('aggro2', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'aggro2')">♥</button>
+        <div class="config-name">🔥 Aggressive Aim v2</div>
+        <div class="config-desc">Maximum speed — pro players only</div>
+        <div class="config-stats"><span>Cam 220</span><span>Fire 140</span><span>Gyro 110</span><span>GyroFire 95</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('pro2024', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'pro2024')">♥</button>
+        <div class="config-name">🏆 Pro League 2024</div>
+        <div class="config-desc">Official tournament settings — used by pros</div>
+        <div class="config-stats"><span>Cam 95</span><span>ADS 140</span><span>Gyro 140</span><span>GyroADS 75</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('smg', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'smg')">♥</button>
+        <div class="config-name">💨 SMG Rush</div>
+        <div class="config-desc">Close quarters beast mode</div>
+        <div class="config-stats"><span>Cam 190</span><span>Fire 160</span><span>Gyro 100</span><span>GyroFire 85</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('sniper', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'sniper')">♥</button>
+        <div class="config-name">🎯 Sniper Config</div>
+        <div class="config-desc">Optimized for quickscoping</div>
+        <div class="config-stats"><span>Cam 60</span><span>Fire 50</span><span>Gyro 30</span><span>GyroFire 25</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('shotgun', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'shotgun')">♥</button>
+        <div class="config-name">💥 Shotgun Flick</div>
+        <div class="config-desc">Instant snap for shotguns</div>
+        <div class="config-stats"><span>Cam 250</span><span>Fire 200</span><span>Gyro 130</span><span>GyroFire 110</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('uss9', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'uss9')">♥</button>
+        <div class="config-name">👑 USS9 God Mode</div>
+        <div class="config-desc">Meta SMG config — Season 10</div>
+        <div class="config-stats"><span>Cam 175</span><span>Fire 145</span><span>Gyro 85</span><span>GyroFire 75</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div></div>
+      </div>
+
+      <div class="config-card" onclick="selectConfig('hvk', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'hvk')">♥</button>
+        <div class="config-name">🔥 HVK Large Cal</div>
+        <div class="config-desc">2-tap AR beast</div>
+        <div class="config-stats"><span>Cam 135</span><span>Fire 115</span><span>Gyro 65</span><span>GyroFire 55</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot"></div></div>
+      </div>
+    </div>
+
+    <div class="br-section" id="br-configs">
+      <div class="config-card br-card featured-card" onclick="selectConfig('brAggro', this)" style="border-color:rgba(255,138,61,.35);">
+        <div class="featured-tag" style="background:var(--br);">BR META</div>
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'brAggro')">♥</button>
+        <div class="config-name">🟠 BR Aggressive</div>
+        <div class="config-desc">Fast looting + close combat</div>
+        <div class="config-stats"><span>Cam 160</span><span>ADS 130</span><span>Gyro 70</span><span>GyroFire 60</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card br-card" onclick="selectConfig('brSniper', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'brSniper')">♥</button>
+        <div class="config-name">🟠 BR Sniper</div>
+        <div class="config-desc">Long range BR dominance</div>
+        <div class="config-stats"><span>Cam 70</span><span>ADS 60</span><span>Gyro 30</span><span>GyroFire 25</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card br-card" onclick="selectConfig('brBalanced', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'brBalanced')">♥</button>
+        <div class="config-name">🟠 BR Balanced</div>
+        <div class="config-desc">All-rounder for any situation</div>
+        <div class="config-stats"><span>Cam 120</span><span>ADS 100</span><span>Gyro 55</span><span>GyroFire 45</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card br-card" onclick="selectConfig('brVehicle', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'brVehicle')">♥</button>
+        <div class="config-name">🟠 BR Vehicle Hunter</div>
+        <div class="config-desc">Fast turret tracking</div>
+        <div class="config-stats"><span>Cam 180</span><span>ADS 140</span><span>Gyro 80</span><span>GyroFire 70</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div></div>
+      </div>
+    </div>
+
+    <div class="zombie-section" id="zombie-configs">
+      <div class="config-card zombie-card featured-card" onclick="selectConfig('zombieHeadshot', this)" style="border-color:rgba(141,251,92,.35);">
+        <div class="featured-tag" style="background:var(--zombie); color:#0a0a0a;">ZOMBIE META</div>
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'zombieHeadshot')">♥</button>
+        <div class="config-name">🧟 Zombie Headhunter</div>
+        <div class="config-desc">Precision for critical hits</div>
+        <div class="config-stats"><span>Cam 85</span><span>ADS 75</span><span>Gyro 40</span><span>GyroFire 35</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card zombie-card" onclick="selectConfig('zombieSpray', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'zombieSpray')">♥</button>
+        <div class="config-name">🧟 Zombie Sprayer</div>
+        <div class="config-desc">High RPM for hordes</div>
+        <div class="config-stats"><span>Cam 150</span><span>ADS 120</span><span>Gyro 70</span><span>GyroFire 60</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot"></div></div>
+      </div>
+
+      <div class="config-card zombie-card" onclick="selectConfig('zombieBoss', this)">
+        <button class="favorite-btn" onclick="toggleFavorite(event, 'zombieBoss')">♥</button>
+        <div class="config-name">🧟 Boss Killer</div>
+        <div class="config-desc">Max damage output</div>
+        <div class="config-stats"><span>Cam 100</span><span>ADS 85</span><span>Gyro 50</span><span>GyroFire 42</span></div>
+        <div class="difficulty-indicator"><div class="difficulty-dot active"></div><div class="difficulty-dot active"></div><div class="difficulty-dot"></div></div>
+      </div>
+    </div>
+
+    <div class="card" id="settingsDisplay">
+      <div class="card-title">Current Config Settings</div>
+
+      <div class="sensitivity-breakdown">
+        <div class="breakdown-title">📊 SENSITIVITY BREAKDOWN</div>
+        <div class="breakdown-text">
+          <strong>Camera (free look):</strong> general movement speed<br>
+          <strong>ADS (aim down sight):</strong> speed while aiming with any scope<br>
+          <strong>Gyroscope:</strong> phone tilt sensitivity<br>
+          <strong>Gyro Fire:</strong> gyro while shooting<br>
+          Lower values = stickier aim assist
+        </div>
+      </div>
+
+      <div class="settings-box" id="configSettings"></div>
+
+      <div class="formula-box">
+        <div class="formula-title">📐 STICKY AIM FORMULA</div>
+        <div style="font-size:10.5px; color:var(--text-dim);">
+          Stickiness = (100 − ADS_Sens) × Aim_Assist_Multiplier<br>
+          Your config: <span style="color:var(--accent-2); font-weight:700;" id="stickyFormulaDisplay">Calculating…</span>
+        </div>
+      </div>
+
+      <button class="copy-btn" onclick="copySettings()">Copy to CODM</button>
+      <button class="action-btn" onclick="openLoadoutSlots()">Save to Loadout</button>
+
+      <div id="loadoutSlotsWrap" style="display:none;">
+        <div class="attachment-section">
+          <div class="attachment-title">Choose a Loadout Slot</div>
+          <div class="loadout-slots" id="loadoutSlots"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI ADVISOR -->
+  <div class="section" id="ai-section">
+    <div class="card">
+      <div class="card-title">🤖 AI Sensitivity Advisor</div>
+
+      <div class="device-selector">
+        <div class="device-option active" onclick="selectDevice('phone', event)">📱 Phone</div>
+        <div class="device-option" onclick="selectDevice('tablet', event)">📲 Tablet</div>
+      </div>
+
+      <div class="slider-container">
+        <div class="slider-label"><span>Screen Size (inches)</span><span id="screenSizeValue">6.5"</span></div>
+        <input type="range" class="slider" id="screenSize" min="4" max="12" step="0.1" value="6.5" oninput="updateAIRecommendation()">
+      </div>
+
+      <div class="slider-container">
+        <div class="slider-label"><span>Experience Level (1–10)</span><span id="expLevelValue">5</span></div>
+        <input type="range" class="slider" id="expLevel" min="1" max="10" value="5" oninput="updateAIRecommendation()">
+      </div>
+
+      <div class="slider-container">
+        <div class="slider-label"><span>Preferred Playstyle</span><span></span></div>
+        <div class="sens-presets">
+          <div class="sens-preset active" onclick="selectPlaystyle('aggressive', event)">Aggressive</div>
+          <div class="sens-preset" onclick="selectPlaystyle('balanced', event)">Balanced</div>
+          <div class="sens-preset" onclick="selectPlaystyle('passive', event)">Passive</div>
+        </div>
+      </div>
+
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" id="useGyro" checked onchange="updateAIRecommendation()"><span>Use gyroscope</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="stickyAim" checked onchange="updateAIRecommendation()"><span>Max sticky aim</span></label>
+      </div>
+
+      <div class="ai-suggestion" id="aiSuggestion">
+        <div class="ai-title">🤖 AI RECOMMENDATION</div>
+        <div class="ai-content" id="aiContent">Move a slider to get a recommendation</div>
+        <div class="calculation-steps" id="aiCalculation"></div>
+      </div>
+
+      <button class="action-btn" onclick="applyAIRecommendation()">Apply AI Config</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 AI Weapon Matcher</div>
+      <select class="dropdown" id="aiWeaponSelect" onchange="matchWeaponToConfig()"><option value="">Select your main weapon</option></select>
+      <div id="weaponMatchResult"></div>
+    </div>
+  </div>
+
+  <!-- SCOPES -->
+  <div class="section" id="scopes-section">
+    <div class="card">
+      <div class="card-title">Scope Sensitivity Guide</div>
+
+      <div class="tip-card">
+        <div class="tip-title">🎯 What are these?</div>
+        <div class="tip-text">
+          <strong>Camera/Steering:</strong> free look sensitivity (moving without aiming)<br>
+          <strong>ADS Sensitivity:</strong> general aim-down-sight speed<br>
+          <strong>Scope Sensitivities:</strong> specific to each optic type<br>
+          Lower values = stickier aim assist
+        </div>
+      </div>
+
+      <div class="sensitivity-breakdown">
+        <div class="breakdown-title">📱 STICKY AIM FORMULA</div>
+        <div class="breakdown-text">
+          For maximum stickiness:<br>
+          • Camera: 80–100 (slow free look)<br>
+          • ADS: 70–90 (sticky aim)<br>
+          • Red Dot: 90–110 (close range)<br>
+          • 3x Scope: 60–75 (mid range)<br>
+          • Sniper: 40–60 (max precision)<br>
+          • Always keep aim assist ON
+        </div>
+      </div>
+
+      <div class="scope-grid">
+        <div class="scope-item"><span class="scope-name">🎮 Camera / Steering</span><span class="scope-value" id="scope-steering">90</span></div>
+        <div class="scope-item"><span class="scope-name">🎯 ADS Sensitivity</span><span class="scope-value" id="scope-ads">75</span></div>
+        <div class="scope-item"><span class="scope-name">🔴 Red Dot / Holographic</span><span class="scope-value" id="scope-reddot">100</span></div>
+        <div class="scope-item"><span class="scope-name">🔫 Tactical Scope (3x)</span><span class="scope-value" id="scope-tactical">70</span></div>
+        <div class="scope-item"><span class="scope-name">🎯 Sniper Scope</span><span class="scope-value" id="scope-sniper">55</span></div>
+        <div class="scope-item"><span class="scope-name">🔍 3x Tactical Scope</span><span class="scope-value" id="scope-3x">65</span></div>
+        <div class="scope-item"><span class="scope-name">🔍 4x Tactical Scope</span><span class="scope-value" id="scope-4x">60</span></div>
+        <div class="scope-item"><span class="scope-name">🔭 6x Tactical Scope</span><span class="scope-value" id="scope-6x">50</span></div>
+        <div class="scope-item"><span class="scope-name">🔭 8x Tactical Scope</span><span class="scope-value" id="scope-8x">40</span></div>
+        <div class="scope-item"><span class="scope-name">📱 Vertical Turning</span><span class="scope-value" id="scope-vertical">1.0</span></div>
+      </div>
+
+      <div class="attachment-section">
+        <div class="attachment-title">Scope Recommendations by Playstyle</div>
+        <div class="attachment-item best"><div><div class="attachment-name">🎯 Sticky Aim Setup</div><div class="attachment-effect">Camera 90 · ADS 75 · Red Dot 100 · 3x 70 · Sniper 55</div></div></div>
+        <div class="attachment-item"><div><div class="attachment-name">⚡ Snappy Setup</div><div class="attachment-effect">Camera 140 · ADS 120 · Red Dot 140 · 3x 90 · Sniper 75</div></div></div>
+        <div class="attachment-item"><div><div class="attachment-name">🎯 Precision Setup</div><div class="attachment-effect">Camera 70 · ADS 60 · Red Dot 80 · 3x 55 · Sniper 45</div></div></div>
+        <div class="attachment-item meta"><div><div class="attachment-name">🏆 Pro League Setup</div><div class="attachment-effect">Camera 95 · ADS 85 · Red Dot 110 · 3x 80 · Sniper 65</div></div></div>
+      </div>
+
+      <div class="pro-tip">
+        <div class="pro-tip-title">💡 Scope Priority</div>
+        <div>
+          1. <strong>Red Dot/Holo:</strong> 1.2× your ADS sens<br>
+          2. <strong>3x Tactical:</strong> 0.8× your ADS sens<br>
+          3. <strong>Sniper:</strong> 0.6× your ADS sens<br>
+          4. <strong>6x/8x:</strong> 0.4–0.5× for max stability
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Gyroscope Scope Settings</div>
+      <div class="settings-box">
+        <div class="setting-category">[Gyro Scope Multipliers]</div>
+        <div class="setting-line"><span>Gyro Red Dot</span><span class="setting-value">1.0x</span></div>
+        <div class="setting-line"><span>Gyro 3x Scope</span><span class="setting-value">0.7x</span></div>
+        <div class="setting-line"><span>Gyro Sniper</span><span class="setting-value">0.5x</span></div>
+        <div class="setting-line"><span>Gyro 4x</span><span class="setting-value">0.6x</span></div>
+        <div class="setting-line"><span>Gyro 6x</span><span class="setting-value">0.4x</span></div>
+      </div>
+      <div class="tip-card">
+        <div class="tip-title">📱 Gyro Tips</div>
+        <div class="tip-text">Always use lower gyro for higher zoom scopes. This prevents over-aiming and maintains stickiness at range.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Advanced Scope Calculator</div>
+      <div class="slider-container">
+        <div class="slider-label"><span>Base ADS Sensitivity</span><span id="calcBaseAds">75</span></div>
+        <input type="range" class="slider" min="1" max="300" value="75" oninput="calculateAdvancedScopes(this.value)">
+      </div>
+      <div class="multiplier-grid" id="scopeMultipliers"></div>
+    </div>
+  </div>
+
+  <!-- WEAPONS -->
+  <div class="section" id="weapons-section">
+    <input type="text" class="search-box" id="weaponSearch" placeholder="🔍 Search weapons…" oninput="searchWeapons()">
+
+    <div class="filter-tabs">
+      <button class="filter-tab active" onclick="filterWeapons('all', event)">ALL</button>
+      <button class="filter-tab" onclick="filterWeapons('ar', event)">ASSAULT</button>
+      <button class="filter-tab" onclick="filterWeapons('smg', event)">SMG</button>
+      <button class="filter-tab" onclick="filterWeapons('sniper', event)">SNIPER</button>
+      <button class="filter-tab" onclick="filterWeapons('lmg', event)">LMG</button>
+      <button class="filter-tab" onclick="filterWeapons('shotgun', event)">SHOTGUN</button>
+      <button class="filter-tab" onclick="filterWeapons('marksman', event)">MARKSMAN</button>
+      <button class="filter-tab" onclick="filterWeapons('pistol', event)">PISTOL</button>
+    </div>
+
+    <div class="weapon-grid" id="weaponGrid"></div>
+
+    <div class="card" id="weaponBuild">
+      <div class="card-title">Select a Weapon</div>
+      <div class="empty-state">
+        <div class="glyph">🔫</div>
+        <div class="lead">Tap any weapon for optimal scope settings & build</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPARE -->
+  <div class="section" id="compare-section">
+    <div class="card">
+      <div class="card-title">⚔️ Weapon Comparison</div>
+      <select class="dropdown" id="compareWeapon1" onchange="updateComparison()"><option value="">Select Weapon 1</option></select>
+      <select class="dropdown" id="compareWeapon2" onchange="updateComparison()"><option value="">Select Weapon 2</option></select>
+      <div id="comparisonResults"></div>
+    </div>
+    <div class="card" id="winnerAnalysis" style="display:none;"></div>
+
+    <div class="card">
+      <div class="card-title">Quick Compare</div>
+      <div class="comparison-tool" id="comparisonTool">
+        <div class="compare-row"><span style="color:var(--text-faint);">Select weapons to compare</span></div>
+      </div>
+      <button class="action-btn" onclick="addToCompare()">Add Current Weapon</button>
+      <button class="copy-btn" onclick="clearComparison()">Clear</button>
+    </div>
+  </div>
+
+  <!-- ATTACHMENTS -->
+  <div class="section" id="attachments-section">
+    <div class="mp-section active" id="mp-attachments">
+      <div class="card">
+        <div class="card-title">All Attachments Guide</div>
+        <div class="attachment-legend">
+          <div class="legend-item"><div class="legend-dot best"></div><span>Recommended</span></div>
+          <div class="legend-item"><div class="legend-dot meta"></div><span>Meta / Pro</span></div>
+          <div class="legend-item"><div class="legend-dot locked"></div><span>Locked by level</span></div>
+        </div>
+
+        <div class="attachment-section">
+          <div class="attachment-title">Muzzle Attachments</div>
+          <div class="attachment-options">
+            <div class="attachment-item best" data-level="1"><div><div class="attachment-name">Tactical Suppressor</div><div class="attachment-effect">Silent, +Range, −ADS Speed</div><div class="level-req">Unlock: Level 1</div></div></div>
+            <div class="attachment-item" data-level="5"><div><div class="attachment-name">OWC Light Suppressor</div><div class="attachment-effect">Silent, +Range, −ADS</div><div class="level-req">Unlock: Level 5</div></div></div>
+            <div class="attachment-item meta" data-level="9"><div><div class="attachment-name">Monolithic Suppressor</div><div class="attachment-effect">Max Range, Silent, −ADS</div><div class="level-req">Unlock: Level 9</div></div></div>
+            <div class="attachment-item" data-level="11"><div><div class="attachment-name">OWC Light Compensator</div><div class="attachment-effect">+Vertical Recoil Control</div><div class="level-req">Unlock: Level 11</div></div></div>
+            <div class="attachment-item" data-level="23"><div><div class="attachment-name">Choke (Shotguns)</div><div class="attachment-effect">Tighter Pellet Spread</div><div class="level-req">Unlock: Level 23</div></div></div>
+            <div class="attachment-item meta" data-level="29"><div><div class="attachment-name">Marauder Suppressor</div><div class="attachment-effect">Tight Spread, Silent, −ADS</div><div class="level-req">Unlock: Level 29</div></div></div>
+          </div>
+        </div>
+
+        <div class="attachment-section">
+          <div class="attachment-title">Barrel Attachments</div>
+          <div class="attachment-options">
+            <div class="attachment-item" data-level="1"><div><div class="attachment-name">Light Barrel</div><div class="attachment-effect">+ADS Speed, −Range</div><div class="level-req">Unlock: Level 1</div></div></div>
+            <div class="attachment-item best" data-level="9"><div><div class="attachment-name">MIP Extended Barrel</div><div class="attachment-effect">+Range, +Bullet Speed</div><div class="level-req">Unlock: Level 9</div></div></div>
+            <div class="attachment-item" data-level="13"><div><div class="attachment-name">RTC Long Barrel</div><div class="attachment-effect">Max Range, −ADS</div><div class="level-req">Unlock: Level 13</div></div></div>
+            <div class="attachment-item meta" data-level="25"><div><div class="attachment-name">MIP Light Barrel</div><div class="attachment-effect">+ADS, +Movement</div><div class="level-req">Unlock: Level 25</div></div></div>
+          </div>
+        </div>
+
+        <div class="attachment-section">
+          <div class="attachment-title">Laser Attachments</div>
+          <div class="attachment-options">
+            <div class="attachment-item best" data-level="5"><div><div class="attachment-name">5mW Laser</div><div class="attachment-effect">Major Hip Fire Boost, Visible</div><div class="level-req">Unlock: Level 5</div></div></div>
+            <div class="attachment-item meta" data-level="12"><div><div class="attachment-name">Tactical Laser</div><div class="attachment-effect">+ADS Speed, Visible</div><div class="level-req">Unlock: Level 12</div></div></div>
+            <div class="attachment-item" data-level="19"><div><div class="attachment-name">OWC Laser — Tactical</div><div class="attachment-effect">+ADS, +Hip Fire</div><div class="level-req">Unlock: Level 19</div></div></div>
+          </div>
+        </div>
+
+        <div class="attachment-section">
+          <div class="attachment-title">Stock Attachments</div>
+          <div class="attachment-options">
+            <div class="attachment-item" data-level="1"><div><div class="attachment-name">Light Stock</div><div class="attachment-effect">+Movement, −ADS Stability</div><div class="level-req">Unlock: Level 1</div></div></div>
+            <div class="attachment-item best" data-level="13"><div><div class="attachment-name">No Stock</div><div class="attachment-effect">Max Mobility, −Accuracy</div><div class="level-req">Unlock: Level 13</div></div></div>
+            <div class="attachment-item" data-level="16"><div><div class="attachment-name">YKM Light Stock</div><div class="attachment-effect">+ADS Movement</div><div class="level-req">Unlock: Level 16</div></div></div>
+            <div class="attachment-item" data-level="22"><div><div class="attachment-name">RTC Steady Stock</div><div class="attachment-effect">+ADS Stability, −Movement</div><div class="level-req">Unlock: Level 22</div></div></div>
+            <div class="attachment-item meta" data-level="28"><div><div class="attachment-name">YKM Combat Stock</div><div class="attachment-effect">Balanced Stability/Mobility</div><div class="level-req">Unlock: Level 28</div></div></div>
+          </div>
+        </div>
+
+        <div class="attachment-section">
+          <div class="attachment-title">Ammunition Attachments</div>
+          <div class="attachment-options">
+            <div class="attachment-item" data-level="1"><div><div class="attachment-name">Fast Reload</div><div class="attachment-effect">Quick Reload, Same Capacity</div><div class="level-req">Unlock: Level 1</div></div></div>
+            <div class="attachment-item" data-level="7"><div><div class="attachment-name">Extended Mag</div><div class="attachment-effect">+Bullets, −Reload Speed</div><div class="level-req">Unlock: Level 7</div></div></div>
+            <div class="attachment-item best" data-level="21"><div><div class="attachment-name">40 Round Drum / Large Ext</div><div class="attachment-effect">Max Capacity, Slow Reload</div><div class="level-req">Unlock: Level 21</div></div></div>
+            <div class="attachment-item meta" data-level="29"><div><div class="attachment-name">FMJ</div><div class="attachment-effect">Penetrate Walls, +Damage</div><div class="level-req">Unlock: Level 29</div></div></div>
+            <div class="attachment-item meta" data-level="38"><div><div class="attachment-name">Large Caliber Ammo</div><div class="attachment-effect">Increased Damage</div><div class="level-req">Unlock: Level 38</div></div></div>
+          </div>
+        </div>
+
+        <div class="attachment-section">
+          <div class="attachment-title">Grip Attachments</div>
+          <div class="attachment-options">
+            <div class="attachment-item best" data-level="6"><div><div class="attachment-name">Foregrip</div><div class="attachment-effect">+Recoil Control</div><div class="level-req">Unlock: Level 6</div></div></div>
+            <div class="attachment-item" data-level="14"><div><div class="attachment-name">Granulated Grip Tape</div><div class="attachment-effect">+ADS Accuracy, −Movement</div><div class="level-req">Unlock: Level 14</div></div></div>
+            <div class="attachment-item meta" data-level="26"><div><div class="attachment-name">Stippled Grip Tape</div><div class="attachment-effect">+ADS Speed, −Accuracy</div><div class="level-req">Unlock: Level 26</div></div></div>
+            <div class="attachment-item" data-level="37"><div><div class="attachment-name">Ranger Foregrip</div><div class="attachment-effect">Max Recoil Control</div><div class="level-req">Unlock: Level 37</div></div></div>
+          </div>
+        </div>
+
+        <div class="attachment-section">
+          <div class="attachment-title">Optic Attachments</div>
+          <div class="attachment-options">
+            <div class="attachment-item" data-level="1"><div><div class="attachment-name">Iron Sights</div><div class="attachment-effect">Default, No Penalty</div><div class="level-req">Unlock: Level 1</div></div></div>
+            <div class="attachment-item" data-level="3"><div><div class="attachment-name">Red Dot Sight</div><div class="attachment-effect">Clear Sight, −ADS</div><div class="level-req">Unlock: Level 3</div></div></div>
+            <div class="attachment-item best" data-level="10"><div><div class="attachment-name">Tactical Scope (3x)</div><div class="attachment-effect">Mid-Range, −ADS</div><div class="level-req">Unlock: Level 10</div></div></div>
+            <div class="attachment-item" data-level="24"><div><div class="attachment-name">3X Tactical Scope</div><div class="attachment-effect">Long Range, −ADS</div><div class="level-req">Unlock: Level 24</div></div></div>
+            <div class="attachment-item meta" data-level="40"><div><div class="attachment-name">4X Tactical Scope</div><div class="attachment-effect">Balanced Zoom</div><div class="level-req">Unlock: Level 40</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="br-section" id="br-attachments">
+      <div class="card">
+        <div class="card-title">BR Attachments</div>
+        <div class="attachment-item best"><div><div class="attachment-name">Monolithic Suppressor</div><div class="attachment-effect">Essential for BR — keeps you off radar</div></div></div>
+        <div class="attachment-item best"><div><div class="attachment-name">Extended Barrel</div><div class="attachment-effect">Max range for long distance fights</div></div></div>
+        <div class="attachment-item"><div><div class="attachment-name">4x Scope</div><div class="attachment-effect">Best all-around BR optic</div></div></div>
+        <div class="attachment-item"><div><div class="attachment-name">Tactical Stock</div><div class="attachment-effect">ADS speed for quick peeking</div></div></div>
+      </div>
+    </div>
+
+    <div class="zombie-section" id="zombie-attachments">
+      <div class="card">
+        <div class="card-title">Zombie Attachments</div>
+        <div class="attachment-item best"><div><div class="attachment-name">Fast Reload</div><div class="attachment-effect">Critical for endless waves</div></div></div>
+        <div class="attachment-item best"><div><div class="attachment-name">Extended Mag</div><div class="attachment-effect">Never reload during horde</div></div></div>
+        <div class="attachment-item"><div><div class="attachment-name">Red Dot</div><div class="attachment-effect">Fast target acquisition</div></div></div>
+        <div class="attachment-item"><div><div class="attachment-name">Foregrip</div><div class="attachment-effect">Control recoil on full auto</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALCULATOR -->
+  <div class="section" id="calculator-section">
+    <div class="card">
+      <div class="card-title">Scope Sensitivity Calculator</div>
+      <div class="slider-container">
+        <div class="slider-label"><span>Base ADS Sensitivity</span><span id="baseAdsValue">75</span></div>
+        <input type="range" class="slider" id="baseAds" min="1" max="300" value="75" oninput="calculateScopes()">
+      </div>
+      <div class="settings-box" id="scopeResults"></div>
+      <button class="copy-btn" onclick="copyScopes()">Copy Scope Values</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sticky Aim Optimizer</div>
+      <div class="checkbox-group">
+        <label class="checkbox-item"><input type="checkbox" id="stickyMode" checked onchange="optimizeSticky()"><span>Max Stickiness Mode (lower sens)</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="aggressiveMode" onchange="optimizeSticky()"><span>Aggressive Mode (higher sens)</span></label>
+        <label class="checkbox-item"><input type="checkbox" id="sniperMode" onchange="optimizeSticky()"><span>Sniper Specialist (ultra low)</span></label>
+      </div>
+      <div class="result-box" id="stickyResult">
+        <div class="result-value">STICKY PRO</div>
+        <div class="result-label">Optimized for magnetic aim assist</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Time-To-Kill Calculator</div>
+      <select class="calc-input" id="calcWeapon" onchange="calculateTTK()"><option value="">Select Weapon</option></select>
+      <input type="number" class="calc-input" id="calcDistance" placeholder="Distance (meters)" oninput="calculateTTK()">
+      <select class="calc-input" id="calcArmor" onchange="calculateTTK()">
+        <option value="none">No Armor</option>
+        <option value="light">Light Armor</option>
+        <option value="heavy">Heavy Armor</option>
+      </select>
+      <div class="calc-result" id="calcResult">— ms</div>
+      <div style="text-align:center; margin-top:8px; font-size:11px; color:var(--text-faint);">Based on chest shots with optimal attachments</div>
+    </div>
+  </div>
+
+  <!-- FORMULAS -->
+  <div class="section" id="formulas-section">
+    <div class="card">
+      <div class="card-title">Mathematical Formulas</div>
+
+      <div class="formula-box">
+        <div class="formula-title">🎯 Sticky Aim Calculation</div>
+        <div class="formula-display">Stickiness = (100 − ADS_Sens) × AA_Multiplier × Device_Factor</div>
+        <div style="font-size:10px; color:var(--text-faint); margin-top:8px;">Where AA_Multiplier = 1.4 (advanced) or 1.2 (standard); Device_Factor = 1.0 (phone) or 0.9 (tablet). Higher result = stickier aim assist.</div>
+      </div>
+
+      <div class="formula-box">
+        <div class="formula-title">⚡ Sensitivity Conversion</div>
+        <div class="formula-display">New_Sens = Base × (Screen_Diagonal / 6.5) × (DPI / 400)^0.5</div>
+        <div style="font-size:10px; color:var(--text-faint); margin-top:8px;">Converts sensitivity between different screen sizes and DPI settings.</div>
+      </div>
+
+      <div class="formula-box">
+        <div class="formula-title">🎮 Gyroscope Scaling</div>
+        <div class="formula-display">Gyro_Scope = Base_Gyro × Zoom_Multiplier × Stability_Factor</div>
+        <div style="font-size:10px; color:var(--text-faint); margin-top:8px;">Zoom multipliers — Red Dot 1.0x · 3x 0.7x · Sniper 0.5x · 4x 0.6x · 6x 0.4x</div>
+      </div>
+
+      <div class="formula-box">
+        <div class="formula-title">💀 Time To Kill (TTK)</div>
+        <div class="formula-display">TTK(ms) = (Shots_To_Kill − 1) / RPM × 60000 + ADS_Time</div>
+        <div style="font-size:10px; color:var(--text-faint); margin-top:8px;">Where Shots_To_Kill = ceil(100 / Damage_Per_Shot)</div>
+      </div>
+
+      <div class="sensitivity-breakdown">
+        <div class="breakdown-title">🧲 Sticky Aim Optimization</div>
+        <div class="breakdown-text">
+          <strong>Optimal Range:</strong> Camera 80–110, ADS 70–90<br>
+          <strong>Formula:</strong> Sticky_Index = (140 − Camera) × 0.5 + (110 − ADS) × 0.8<br>
+          <strong>Target Index:</strong> 60–80 for maximum stickiness<br>
+          <strong>Current Config:</strong> <span id="stickyIndex" style="color:var(--text);">Calculating…</span>
+        </div>
+      </div>
+
+      <div class="sensitivity-breakdown" style="margin-top:10px;">
+        <div class="breakdown-title">📱 Advanced Gyro Formulas</div>
+        <div class="breakdown-text">
+          <strong>Hybrid calculation:</strong><br>
+          Touch_Contribution = Touch_Sens × (1 − Gyro_Ratio)<br>
+          Gyro_Contribution = Gyro_Sens × Gyro_Ratio × Tilt_Angle<br><br>
+          <strong>Recommended ratios:</strong> Close 30/70 · Mid 50/50 · Long 70/30 (gyro/touch)
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sensitivity Matrix</div>
+      <div class="sensitivity-matrix" id="sensMatrix"></div>
+    </div>
+  </div>
+
+  <!-- RAGE -->
+  <div class="section" id="rage-section">
+    <div class="rage-feature">
+      <div class="rage-title">🔥 One-Shot Builds</div>
+      <div class="attachment-item" onclick="showRageBuild('hvk')"><div><div class="attachment-name">HVK-30 Large Caliber <span class="one-shot-badge">ONE-SHOT</span></div><div class="attachment-effect">2-tap headshot at all ranges</div></div></div>
+      <div class="attachment-item" onclick="showRageBuild('drh')"><div><div class="attachment-name">DR-H OTM <span class="one-shot-badge">ONE-SHOT</span></div><div class="attachment-effect">Upper chest 2-tap kill</div></div></div>
+      <div class="attachment-item" onclick="showRageBuild('spr208')"><div><div class="attachment-name">SP-R 208 <span class="one-shot-badge">ONE-SHOT</span></div><div class="attachment-effect">Chest up one-shot kill</div></div></div>
+    </div>
+
+    <div class="rage-feature">
+      <div class="rage-title">🧱 Wallbang Builds</div>
+      <div class="attachment-item" onclick="showRageBuild('rpd')"><div><div class="attachment-name">RPD FMJ <span class="wallbang-badge">WALLBANG</span></div><div class="attachment-effect">Shoot through buildings</div></div></div>
+      <div class="attachment-item" onclick="showRageBuild('m4lmg')"><div><div class="attachment-name">M4LMG FMJ <span class="wallbang-badge">WALLBANG</span></div><div class="attachment-effect">Wall spam destruction</div></div></div>
+    </div>
+
+    <div class="rage-feature">
+      <div class="rage-title">🎯 No Recoil Builds</div>
+      <div class="attachment-item" onclick="showRageBuild('icr1')"><div><div class="attachment-name">ICR-1 Laser <span class="no-recoil-badge">NO RECOIL</span></div><div class="attachment-effect">Literally zero recoil</div></div></div>
+      <div class="attachment-item" onclick="showRageBuild('gks')"><div><div class="attachment-name">GKS Stable <span class="no-recoil-badge">NO RECOIL</span></div><div class="attachment-effect">Laser beam accuracy</div></div></div>
+    </div>
+
+    <div class="card" id="rageBuildDetails" style="display:none;">
+      <div id="rageContent"></div>
+    </div>
+  </div>
+
+  <!-- TIPS -->
+  <div class="section" id="tips-section">
+    <div class="card">
+      <div class="card-title">🎯 Sticky Aim Mastery</div>
+      <div class="tip-card"><div class="tip-title">What is Sticky Aim?</div><div class="tip-text">Sticky aim refers to how much the aim assist "sticks" to targets. Lower sensitivity means stronger stickiness because the game assists more when you move slower across a target.</div></div>
+      <div class="tip-card"><div class="tip-title">🎮 Camera vs ADS Sensitivity</div><div class="tip-text"><strong>Camera (Steering):</strong> movement when NOT aiming — affects 180° turns and checking corners.<br><br><strong>ADS Sensitivity:</strong> movement when AIMING — this is where stickiness matters most.<br><br><strong>Rule:</strong> keep Camera higher than ADS for quick reactions, but ADS low for sticky aim.</div></div>
+      <div class="tip-card"><div class="tip-title">🔴 Red Dot vs Sniper Scope</div><div class="tip-text"><strong>Red Dot (1x):</strong> use 1.2–1.4× your ADS sens — good for close-mid tracking.<br><br><strong>3x Tactical:</strong> use 0.8–0.9× ADS sens — best AR range.<br><br><strong>Sniper:</strong> use 0.5–0.7× ADS sens — maximum precision required.</div></div>
+      <div class="pro-tip">
+        <div class="pro-tip-title">🏆 Pro Settings Formula</div>
+        <div>For tournament-level sticky aim: Camera 90–110 · ADS 70–90 · Red Dot = ADS × 1.3 · 3x Scope = ADS × 0.9 · Sniper = ADS × 0.6 · Aim Assist ON + Advanced</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Fast Leveling Guide</div>
+      <div class="level-tip"><h4>🎯 Method 1: Frontline Headshots</h4><p>Play Frontline on Crossfire or Killhouse. Focus on headshots only. Use XP cards during 2XP events.</p><span class="xp-rate">15,000 XP/hour</span></div>
+      <div class="level-tip"><h4>⚡ Method 2: Hardpoint Rush</h4><p>Capture objectives and get kills. Use scorestreaks to maximize points. Play with friends for team bonus.</p><span class="xp-rate">22,000 XP/hour</span></div>
+      <div class="level-tip"><h4>💎 Method 3: Battle Royale</h4><p>Survive to top 10 with 8+ kills. Complete contracts. Play Alcatraz for faster matches.</p><span class="xp-rate">25,000 XP/hour</span></div>
+      <div class="level-tip"><h4>🏆 Method 4: Ranked Matches</h4><p>High XP rewards for wins. Play objective modes. Bonus XP for MVP performance.</p><span class="xp-rate">30,000 XP/hour</span></div>
+    </div>
+  </div>
+</div>
+
+<button class="sync-btn" onclick="syncData()" aria-label="Sync data">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 12a8 8 0 0 1 14.6-4.6M20 12a8 8 0 0 1-14.6 4.6" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"/><path d="M18 3v5h-5M6 21v-5h5" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</button>
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================================
+// PERSISTENT STORAGE (replaces localStorage — artifact-safe)
+// ==========================================================
+async function storageGet(key, fallback){
+  try{
+    const res = await window.storage.get(key, false);
+    return res && res.value ? JSON.parse(res.value) : fallback;
+  }catch(e){ return fallback; }
+}
+async function storageSet(key, value){
+  try{ await window.storage.set(key, JSON.stringify(value), false); }
+  catch(e){ console.error('storage set failed', e); }
+}
+
+// ==========================================================
+// CONFIG DATABASE — ALL MODES
+// ==========================================================
+const configs = {
+  stickyPro:{ name:'Sticky Aim Pro', type:'sticky', mode:'mp', sensitivity:{cam:90,fire:75,gyro:35,gyroFire:28}, scopes:{steering:90,ads:75,reddot:100,tactical:70,sniper:55,scope3x:65,scope4x:60,scope6x:50,scope8x:40,vertical:1.0}, basic:{aimAssist:'ON (Advanced)',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:1, stickyIndex:78 },
+  stickyAggro:{ name:'Sticky Aggro', type:'sticky', mode:'mp', sensitivity:{cam:140,fire:120,gyro:65,gyroFire:55}, scopes:{steering:140,ads:120,reddot:155,tactical:105,sniper:80,scope3x:95,scope4x:85,scope6x:70,scope8x:60,vertical:1.0}, basic:{aimAssist:'ON (Advanced)',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:2, stickyIndex:45 },
+  stickySniper:{ name:'Sticky Sniper', type:'sticky', mode:'mp', sensitivity:{cam:50,fire:40,gyro:25,gyroFire:20}, scopes:{steering:50,ads:40,reddot:55,tactical:35,sniper:25,scope3x:30,scope4x:28,scope6x:22,scope8x:18,vertical:1.0}, basic:{aimAssist:'ON (Advanced)',gunKick:0,recoilRotate:0,viewKick:0,dof:'ON'}, difficulty:1, stickyIndex:92 },
+  snappy1:{ name:'Snappy Aim v1', type:'snappy', mode:'mp', sensitivity:{cam:140,fire:125,gyro:42,gyroFire:32}, scopes:{steering:140,ads:125,reddot:165,tactical:110,sniper:85,scope3x:100,scope4x:90,scope6x:75,scope8x:65,vertical:1.0}, basic:{aimAssist:'Optional',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:1, stickyIndex:32 },
+  snappy2:{ name:'Snappy Aim v2', type:'snappy', mode:'mp', sensitivity:{cam:200,fire:90,gyro:80,gyroFire:70}, scopes:{steering:200,ads:160,reddot:210,tactical:140,sniper:110,scope3x:130,scope4x:115,scope6x:95,scope8x:80,vertical:1.0}, basic:{aimAssist:'Optional',gunKick:0,recoilRotate:0,viewKick:0,dof:'Optional'}, difficulty:2, stickyIndex:15 },
+  aggro2:{ name:'Aggressive Aim v2', type:'aggressive', mode:'mp', sensitivity:{cam:220,fire:140,gyro:110,gyroFire:95}, scopes:{steering:220,ads:175,reddot:230,tactical:155,sniper:120,scope3x:140,scope4x:125,scope6x:105,scope8x:90,vertical:1.0}, basic:{aimAssist:'OFF',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:3, stickyIndex:8 },
+  pro2024:{ name:'Pro League 2024', type:'precision', mode:'mp', sensitivity:{cam:95,fire:140,gyro:140,gyroFire:75}, scopes:{steering:95,ads:85,reddot:110,tactical:75,sniper:60,scope3x:70,scope4x:65,scope6x:55,scope8x:45,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:3, stickyIndex:65 },
+  smg:{ name:'SMG Rush', type:'aggressive', mode:'mp', sensitivity:{cam:190,fire:160,gyro:100,gyroFire:85}, scopes:{steering:190,ads:160,reddot:200,tactical:140,sniper:110,scope3x:130,scope4x:115,scope6x:95,scope8x:80,vertical:1.0}, basic:{aimAssist:'Optional',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:3, stickyIndex:12 },
+  sniper:{ name:'Sniper Config', type:'precision', mode:'mp', sensitivity:{cam:60,fire:50,gyro:30,gyroFire:25}, scopes:{steering:60,ads:50,reddot:65,tactical:45,sniper:35,scope3x:40,scope4x:38,scope6x:32,scope8x:28,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'ON'}, difficulty:1, stickyIndex:88 },
+  shotgun:{ name:'Shotgun Flick', type:'aggressive', mode:'mp', sensitivity:{cam:250,fire:200,gyro:130,gyroFire:110}, scopes:{steering:250,ads:200,reddot:260,tactical:180,sniper:140,scope3x:165,scope4x:145,scope6x:120,scope8x:100,vertical:1.0}, basic:{aimAssist:'OFF',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:3, stickyIndex:5 },
+  uss9:{ name:'USS9 God Mode', type:'aggressive', mode:'mp', sensitivity:{cam:175,fire:145,gyro:85,gyroFire:75}, scopes:{steering:175,ads:145,reddot:190,tactical:130,sniper:100,scope3x:118,scope4x:105,scope6x:88,scope8x:75,vertical:1.0}, basic:{aimAssist:'Optional',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:2, stickyIndex:20 },
+  hvk:{ name:'HVK Large Cal', type:'precision', mode:'mp', sensitivity:{cam:135,fire:115,gyro:65,gyroFire:55}, scopes:{steering:135,ads:115,reddot:150,tactical:103,sniper:80,scope3x:95,scope4x:85,scope6x:72,scope8x:62,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:2, stickyIndex:38 },
+  brAggro:{ name:'BR Aggressive', type:'aggressive', mode:'br', sensitivity:{cam:160,fire:130,gyro:70,gyroFire:60}, scopes:{steering:160,ads:130,reddot:170,tactical:115,sniper:90,scope3x:105,scope4x:95,scope6x:80,scope8x:70,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:2, stickyIndex:35 },
+  brSniper:{ name:'BR Sniper', type:'precision', mode:'br', sensitivity:{cam:70,fire:60,gyro:30,gyroFire:25}, scopes:{steering:70,ads:60,reddot:80,tactical:55,sniper:40,scope3x:48,scope4x:45,scope6x:38,scope8x:32,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'ON'}, difficulty:1, stickyIndex:82 },
+  brBalanced:{ name:'BR Balanced', type:'balanced', mode:'br', sensitivity:{cam:120,fire:100,gyro:55,gyroFire:45}, scopes:{steering:120,ads:100,reddot:130,tactical:90,sniper:70,scope3x:82,scope4x:75,scope6x:62,scope8x:55,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:2, stickyIndex:48 },
+  brVehicle:{ name:'BR Vehicle Hunter', type:'aggressive', mode:'br', sensitivity:{cam:180,fire:140,gyro:80,gyroFire:70}, scopes:{steering:180,ads:140,reddot:185,tactical:125,sniper:95,scope3x:115,scope4x:100,scope6x:85,scope8x:70,vertical:1.0}, basic:{aimAssist:'Optional',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:3, stickyIndex:25 },
+  zombieHeadshot:{ name:'Zombie Headhunter', type:'precision', mode:'zombie', sensitivity:{cam:85,fire:75,gyro:40,gyroFire:35}, scopes:{steering:85,ads:75,reddot:95,tactical:68,sniper:55,scope3x:62,scope4x:58,scope6x:48,scope8x:42,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:1, stickyIndex:72 },
+  zombieSpray:{ name:'Zombie Sprayer', type:'aggressive', mode:'zombie', sensitivity:{cam:150,fire:120,gyro:70,gyroFire:60}, scopes:{steering:150,ads:120,reddot:160,tactical:110,sniper:85,scope3x:100,scope4x:90,scope6x:75,scope8x:65,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:2, stickyIndex:38 },
+  zombieBoss:{ name:'Boss Killer', type:'precision', mode:'zombie', sensitivity:{cam:100,fire:85,gyro:50,gyroFire:42}, scopes:{steering:100,ads:85,reddot:110,tactical:75,sniper:60,scope3x:70,scope4x:65,scope6x:55,scope8x:48,vertical:1.0}, basic:{aimAssist:'ON',gunKick:0,recoilRotate:0,viewKick:0,dof:'OFF'}, difficulty:2, stickyIndex:58 }
+};
+
+// ==========================================================
+// WEAPON DATABASE
+// ==========================================================
+const weapons = {
+  fennec:{ name:'Fennec', category:'smg', tier:'S', unlock:'Base Weapon', stats:{damage:75,rpm:111,mobility:90,range:40,accuracy:70,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'40 Round Drum',level:21}} },
+  uss9:{ name:'USS 9', category:'smg', tier:'S', unlock:'Season 10 BP', stats:{damage:78,rpm:107,mobility:88,range:50,accuracy:75,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  cbr4:{ name:'CBR4', category:'smg', tier:'A', unlock:'Base Weapon', stats:{damage:72,rpm:105,mobility:85,range:45,accuracy:72,shotsToKill:4}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'Tactical Laser',level:12},'Stock':{name:'No Stock',level:13},'Ammo':{name:'40 Round',level:21}} },
+  mx9:{ name:'MX9', category:'smg', tier:'A', unlock:'Base Weapon', stats:{damage:74,rpm:103,mobility:87,range:42,accuracy:70,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'YKM Light',level:16},'Ammo':{name:'40 Round',level:21}} },
+  pp19:{ name:'PP19 Bizon', category:'smg', tier:'B', unlock:'Base Weapon', stats:{damage:70,rpm:100,mobility:82,range:48,accuracy:68,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Large Caliber',level:38}} },
+  rus79u:{ name:'RUS-79U', category:'smg', tier:'A', unlock:'Base Weapon', stats:{damage:73,rpm:102,mobility:86,range:44,accuracy:71,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  pdw57:{ name:'PDW-57', category:'smg', tier:'B', unlock:'Base Weapon', stats:{damage:76,rpm:98,mobility:84,range:46,accuracy:69,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'40 Round',level:21}} },
+  razorback:{ name:'Razorback', category:'smg', tier:'B', unlock:'Base Weapon', stats:{damage:71,rpm:101,mobility:83,range:47,accuracy:70,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  hg40:{ name:'HG 40', category:'smg', tier:'C', unlock:'Base Weapon', stats:{damage:68,rpm:95,mobility:80,range:50,accuracy:72,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  gks:{ name:'GKS', category:'smg', tier:'B', unlock:'Base Weapon', stats:{damage:75,rpm:96,mobility:81,range:49,accuracy:73,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  agr556:{ name:'AGR 556', category:'smg', tier:'A', unlock:'Base Weapon', stats:{damage:72,rpm:104,mobility:85,range:52,accuracy:71,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'40 Round',level:21}} },
+  qxr:{ name:'QXR', category:'smg', tier:'A', unlock:'Base Weapon', stats:{damage:71,rpm:106,mobility:84,range:43,accuracy:70,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  switchbladex9:{ name:'Switchblade X9', category:'smg', tier:'S', unlock:'Base Weapon', stats:{damage:74,rpm:108,mobility:89,range:41,accuracy:69,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'40 Round',level:21}} },
+  ak47:{ name:'AK-47', category:'ar', tier:'A', unlock:'Level 18', stats:{damage:80,rpm:55,mobility:65,range:60,accuracy:68,shotsToKill:3}, best:{'Muzzle':{name:'OWC Light Compensator',level:11},'Barrel':{name:'MIP Extended',level:9},'Grip':{name:'Foregrip',level:6},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  m4:{ name:'M4', category:'ar', tier:'B', unlock:'Base Weapon', stats:{damage:70,rpm:68,mobility:70,range:58,accuracy:72,shotsToKill:4}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Red Dot',level:3},'Stock':{name:'No Stock',level:13},'Ammo':{name:'40 Round',level:21}} },
+  hvk30:{ name:'HVK-30', category:'ar', tier:'S', unlock:'Base Weapon', stats:{damage:85,rpm:72,mobility:68,range:55,accuracy:65,shotsToKill:3}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'MIP Extended',level:9},'Ammo':{name:'Large Caliber',level:38},'Stock':{name:'No Stock',level:13},'Grip':{name:'Foregrip',level:6}} },
+  kilo141:{ name:'Kilo 141', category:'ar', tier:'A', unlock:'Base Weapon', stats:{damage:72,rpm:65,mobility:69,range:62,accuracy:74,shotsToKill:4}, best:{'Muzzle':{name:'OWC Light Suppressor',level:5},'Barrel':{name:'RTC Long',level:13},'Grip':{name:'Foregrip',level:6},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  type25:{ name:'Type 25', category:'ar', tier:'A', unlock:'Level 40', stats:{damage:73,rpm:75,mobility:71,range:54,accuracy:70,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'YKM Light',level:16},'Ammo':{name:'40 Round',level:21}} },
+  icr1:{ name:'ICR-1', category:'ar', tier:'B', unlock:'Base Weapon', stats:{damage:69,rpm:60,mobility:68,range:65,accuracy:78,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Red Dot',level:3},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  manowar:{ name:'Man-O-War', category:'ar', tier:'A', unlock:'Level 50', stats:{damage:82,rpm:58,mobility:62,range:68,accuracy:71,shotsToKill:3}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'RTC Long',level:13},'Grip':{name:'Foregrip',level:6},'Stock':{name:'RTC Steady',level:22},'Ammo':{name:'Extended Mag',level:7}} },
+  drh:{ name:'DR-H', category:'ar', tier:'A', unlock:'Base Weapon', stats:{damage:84,rpm:63,mobility:66,range:59,accuracy:67,shotsToKill:3}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'MIP Extended',level:9},'Ammo':{name:'30 Round OTM',level:35},'Stock':{name:'No Stock',level:13},'Grip':{name:'Foregrip',level:6}} },
+  peacekeeper:{ name:'Peacekeeper MK2', category:'ar', tier:'S', unlock:'Base Weapon', stats:{damage:76,rpm:70,mobility:72,range:64,accuracy:75,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'40 Round',level:21}} },
+  kn44:{ name:'KN-44', category:'ar', tier:'A', unlock:'Base Weapon', stats:{damage:74,rpm:66,mobility:70,range:61,accuracy:72,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  bk57:{ name:'BK57', category:'ar', tier:'B', unlock:'Base Weapon', stats:{damage:71,rpm:67,mobility:69,range:60,accuracy:71,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  asm10:{ name:'ASM10', category:'ar', tier:'B', unlock:'Base Weapon', stats:{damage:77,rpm:62,mobility:64,range:63,accuracy:69,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  hbra3:{ name:'HBRa3', category:'ar', tier:'A', unlock:'Base Weapon', stats:{damage:73,rpm:69,mobility:71,range:59,accuracy:73,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  cr56amax:{ name:'CR-56 AMAX', category:'ar', tier:'S', unlock:'Base Weapon', stats:{damage:81,rpm:64,mobility:67,range:66,accuracy:70,shotsToKill:3}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'MIP Extended',level:9},'Ammo':{name:'M67 Ammo',level:42},'Stock':{name:'No Stock',level:13},'Grip':{name:'Foregrip',level:6}} },
+  swordfish:{ name:'Swordfish', category:'ar', tier:'B', unlock:'Base Weapon', stats:{damage:78,rpm:61,mobility:65,range:70,accuracy:76,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  dlq33:{ name:'DL Q33', category:'sniper', tier:'S', unlock:'Base Weapon', stats:{damage:90,rpm:28,mobility:45,range:95,accuracy:85,shotsToKill:1}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Light',level:7},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'YKM Combat',level:16},'Ammo':{name:'FMJ',level:29}} },
+  locus:{ name:'Locus', category:'sniper', tier:'A', unlock:'Level 30', stats:{damage:85,rpm:28,mobility:50,range:92,accuracy:82,shotsToKill:1}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'Light',level:1},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'Combat',level:28},'Ammo':{name:'Fast Mag',level:1}} },
+  outlaw:{ name:'Outlaw', category:'sniper', tier:'B', unlock:'Base Weapon', stats:{damage:82,rpm:35,mobility:55,range:88,accuracy:78,shotsToKill:1}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'YKM Combat',level:16},'Ammo':{name:'Extended Mag',level:7}} },
+  arctic50:{ name:'Arctic .50', category:'sniper', tier:'A', unlock:'Base Weapon', stats:{damage:83,rpm:32,mobility:48,range:90,accuracy:80,shotsToKill:1}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'RTC Long',level:13},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'RTC Steady',level:22},'Ammo':{name:'FMJ',level:29}} },
+  xpr50:{ name:'XPR-50', category:'sniper', tier:'B', unlock:'Base Weapon', stats:{damage:80,rpm:40,mobility:52,range:85,accuracy:75,shotsToKill:2}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'YKM Combat',level:16},'Ammo':{name:'Extended Mag',level:7}} },
+  m21ebr:{ name:'M21 EBR', category:'sniper', tier:'C', unlock:'Base Weapon', stats:{damage:78,rpm:45,mobility:54,range:82,accuracy:74,shotsToKill:2}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'YKM Combat',level:16},'Ammo':{name:'Extended Mag',level:7}} },
+  svd:{ name:'SVD', category:'sniper', tier:'A', unlock:'Base Weapon', stats:{damage:86,rpm:30,mobility:47,range:91,accuracy:83,shotsToKill:1}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'RTC Long',level:13},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'RTC Steady',level:22},'Ammo':{name:'Extended Mag',level:7}} },
+  koshka:{ name:'Koshka', category:'sniper', tier:'A', unlock:'Base Weapon', stats:{damage:88,rpm:29,mobility:46,range:93,accuracy:84,shotsToKill:1}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'RTC Long',level:13},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'RTC Steady',level:22},'Ammo':{name:'FMJ',level:29}} },
+  rpd:{ name:'RPD', category:'lmg', tier:'A', unlock:'Base Weapon', stats:{damage:76,rpm:66,mobility:55,range:75,accuracy:72,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Grip':{name:'Foregrip',level:6},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'100 Round',level:21}} },
+  ul736:{ name:'UL736', category:'lmg', tier:'B', unlock:'Base Weapon', stats:{damage:74,rpm:64,mobility:57,range:73,accuracy:70,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Grip':{name:'Foregrip',level:6},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'Extended Mag',level:7}} },
+  m4lmg:{ name:'M4LMG', category:'lmg', tier:'B', unlock:'Base Weapon', stats:{damage:73,rpm:63,mobility:58,range:72,accuracy:71,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Grip':{name:'Foregrip',level:6},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'Extended Mag',level:7}} },
+  s36:{ name:'S36', category:'lmg', tier:'C', unlock:'Base Weapon', stats:{damage:75,rpm:68,mobility:54,range:70,accuracy:68,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Grip':{name:'Foregrip',level:6},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'Extended Mag',level:7}} },
+  holger26:{ name:'Holger 26', category:'lmg', tier:'S', unlock:'Base Weapon', stats:{damage:72,rpm:71,mobility:62,range:74,accuracy:75,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'30 Round Mag',level:35}} },
+  hades:{ name:'Hades', category:'lmg', tier:'A', unlock:'Base Weapon', stats:{damage:75,rpm:67,mobility:56,range:76,accuracy:73,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Grip':{name:'Foregrip',level:6},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'Extended Mag',level:7}} },
+  by15:{ name:'BY15', category:'shotgun', tier:'A', unlock:'Base Weapon', stats:{damage:95,rpm:29,mobility:75,range:35,accuracy:60,shotsToKill:1}, best:{'Muzzle':{name:'Choke',level:23},'Barrel':{name:'Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Tube',level:7}} },
+  hs0405:{ name:'HS0405', category:'shotgun', tier:'A', unlock:'Base Weapon', stats:{damage:98,rpm:25,mobility:72,range:38,accuracy:62,shotsToKill:1}, best:{'Muzzle':{name:'Choke',level:23},'Barrel':{name:'Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Tube',level:7}} },
+  striker:{ name:'Striker', category:'shotgun', tier:'B', unlock:'Base Weapon', stats:{damage:85,rpm:45,mobility:70,range:40,accuracy:58,shotsToKill:2}, best:{'Muzzle':{name:'Choke',level:23},'Barrel':{name:'Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  echo:{ name:'Echo', category:'shotgun', tier:'A', unlock:'Base Weapon', stats:{damage:88,rpm:50,mobility:68,range:42,accuracy:60,shotsToKill:1}, best:{'Muzzle':{name:'Choke',level:23},'Barrel':{name:'Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  krm262:{ name:'KRM-262', category:'shotgun', tier:'S', unlock:'Base Weapon', stats:{damage:96,rpm:27,mobility:74,range:36,accuracy:61,shotsToKill:1}, best:{'Muzzle':{name:'Choke',level:23},'Barrel':{name:'Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Tube',level:7}} },
+  hs2126:{ name:'HS2126', category:'shotgun', tier:'C', unlock:'Base Weapon', stats:{damage:82,rpm:55,mobility:69,range:44,accuracy:56,shotsToKill:2}, best:{'Muzzle':{name:'Choke',level:23},'Barrel':{name:'Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  r90:{ name:'R9-0', category:'shotgun', tier:'B', unlock:'Base Weapon', stats:{damage:90,rpm:48,mobility:71,range:41,accuracy:59,shotsToKill:1}, best:{'Muzzle':{name:'Choke',level:23},'Barrel':{name:'Extended',level:9},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'No Stock',level:13},'Ammo':{name:'Extended Mag',level:7}} },
+  kilobolt:{ name:'Kilo Bolt-Action', category:'marksman', tier:'A', unlock:'Base Weapon', stats:{damage:87,rpm:33,mobility:58,range:80,accuracy:79,shotsToKill:1}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'RTC Extended',level:13},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'RTC Steady',level:22},'Ammo':{name:'Extended Mag',level:7}} },
+  sks:{ name:'SKS', category:'marksman', tier:'A', unlock:'Base Weapon', stats:{damage:84,rpm:42,mobility:60,range:78,accuracy:76,shotsToKill:2}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'Extended Mag',level:7}} },
+  spr208:{ name:'SP-R 208', category:'marksman', tier:'S', unlock:'Base Weapon', stats:{damage:89,rpm:31,mobility:56,range:82,accuracy:81,shotsToKill:1}, best:{'Muzzle':{name:'Monolithic Suppressor',level:9},'Barrel':{name:'RTC Extended',level:13},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'RTC Steady',level:22},'Ammo':{name:'Extended Mag',level:7}} },
+  mk2:{ name:'MK2', category:'marksman', tier:'B', unlock:'Base Weapon', stats:{damage:86,rpm:36,mobility:59,range:79,accuracy:77,shotsToKill:1}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'Extended Mag',level:7}} },
+  mw11:{ name:'MW11', category:'pistol', tier:'B', unlock:'Base Weapon', stats:{damage:65,rpm:80,mobility:90,range:30,accuracy:68,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Laser':{name:'5mW Laser',level:5},'Trigger':{name:'Light Trigger',level:12},'Ammo':{name:'Extended Mag',level:7},'Perk':{name:'Sleight of Hand',level:1}} },
+  j358:{ name:'J358', category:'pistol', tier:'A', unlock:'Base Weapon', stats:{damage:78,rpm:45,mobility:85,range:35,accuracy:70,shotsToKill:3}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Laser':{name:'5mW Laser',level:5},'Trigger':{name:'Light Trigger',level:12},'Ammo':{name:'Extended Mag',level:7},'Perk':{name:'Sleight of Hand',level:1}} },
+  deagle:{ name:'.50 GS', category:'pistol', tier:'S', unlock:'Base Weapon', stats:{damage:92,rpm:30,mobility:80,range:40,accuracy:65,shotsToKill:2}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Laser':{name:'5mW Laser',level:5},'Trigger':{name:'Light Trigger',level:12},'Ammo':{name:'Extended Mag',level:7},'Perk':{name:'Sleight of Hand',level:1}} },
+  renetti:{ name:'Renetti', category:'pistol', tier:'A', unlock:'Base Weapon', stats:{damage:68,rpm:95,mobility:88,range:32,accuracy:69,shotsToKill:4}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Laser':{name:'5mW Laser',level:5},'Trigger':{name:'Light Trigger',level:12},'Ammo':{name:'Extended Mag',level:7},'Perk':{name:'Sleight of Hand',level:1}} },
+  shorty:{ name:'Shorty', category:'pistol', tier:'A', unlock:'Base Weapon', stats:{damage:88,rpm:60,mobility:82,range:25,accuracy:55,shotsToKill:1}, best:{'Muzzle':{name:'Choke',level:23},'Laser':{name:'5mW Laser',level:5},'Grip':{name:'Foregrip',level:6},'Ammo':{name:'Extended Tube',level:7},'Perk':{name:'Sleight of Hand',level:1}} },
+  crossbow:{ name:'Crossbow', category:'pistol', tier:'B', unlock:'Base Weapon', stats:{damage:95,rpm:25,mobility:75,range:50,accuracy:72,shotsToKill:1}, best:{'Optic':{name:'Red Dot',level:3},'Laser':{name:'5mW Laser',level:5},'Stock':{name:'YKM Light',level:16},'Ammo':{name:'Explosive Tip',level:35},'Perk':{name:'Sleight of Hand',level:1}} },
+  na45:{ name:'NA-45', category:'pistol', tier:'B', unlock:'Base Weapon', stats:{damage:90,rpm:28,mobility:70,range:55,accuracy:74,shotsToKill:1}, best:{'Muzzle':{name:'Tactical Suppressor',level:1},'Barrel':{name:'MIP Extended',level:9},'Optic':{name:'Tactical Scope',level:10},'Stock':{name:'YKM Combat',level:28},'Ammo':{name:'Extended Mag',level:7}} },
+  thumper:{ name:'Thumper', category:'pistol', tier:'C', unlock:'Base Weapon', stats:{damage:100,rpm:15,mobility:65,range:45,accuracy:50,shotsToKill:1}, best:{'N/A':{name:'No Attachments',level:0}} },
+  d13sector:{ name:'D13 Sector', category:'pistol', tier:'C', unlock:'Base Weapon', stats:{damage:85,rpm:20,mobility:68,range:40,accuracy:60,shotsToKill:2}, best:{'N/A':{name:'No Attachments',level:0}} },
+  ballistic:{ name:'Ballistic Knife', category:'pistol', tier:'B', unlock:'Base Weapon', stats:{damage:100,rpm:35,mobility:95,range:20,accuracy:80,shotsToKill:1}, best:{'N/A':{name:'No Attachments',level:0}} }
+};
+
+// ==========================================================
+// STATE
+// ==========================================================
+let currentConfig = 'snappy1';
+let currentWeapon = null;
+let currentFilter = 'all';
+let currentAimType = 'all';
+let currentMode = 'mp';
+let currentDevice = 'phone';
+let currentPlaystyle = 'aggressive';
+let favorites = [];
+let loadouts = [null, null, null, null, null];
+let compareList = [];
+
+// ==========================================================
+// MODE / TAB SWITCHING
+// ==========================================================
+function switchMode(mode, evt){
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  (evt ? evt.currentTarget : document.querySelector(`.mode-btn.${mode === 'mp' ? '' : mode}`))?.classList.add('active');
+  if(evt) evt.currentTarget.classList.add('active');
+
+  document.querySelectorAll('.mp-section, .br-section, .zombie-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(mode + '-configs')?.classList.add('active');
+  document.getElementById(mode + '-attachments')?.classList.add('active');
+
+  showToast('Switched to ' + mode.toUpperCase());
+}
+
+function switchTab(tab, evt){
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  if(evt) evt.currentTarget.classList.add('active');
+  document.getElementById(tab + '-section').classList.add('active');
+
+  if(tab === 'weapons') initWeaponGrid();
+  if(tab === 'compare') initCompare();
+  if(tab === 'formulas') generateSensitivityMatrix();
+}
+
+function filterAimType(type, evt){
+  currentAimType = type;
+  document.querySelectorAll('.aim-type-tab').forEach(t => t.classList.remove('active'));
+  if(evt) evt.currentTarget.classList.add('active');
+
+  document.querySelectorAll('.config-card').forEach(card => {
+    const match = card.getAttribute('onclick').match(/'(.*?)'/);
+    if(!match) return;
+    const cfg = configs[match[1]];
+    if(!cfg) return;
+    card.style.display = (type === 'all' || cfg.type === type) ? 'block' : 'none';
+  });
+}
+
+function selectConfig(configId, element){
+  document.querySelectorAll('.config-card').forEach(c => c.classList.remove('active'));
+  element.classList.add('active');
+  currentConfig = configId;
+  updateSettingsDisplay();
+  updateStickyIndex();
+}
+
+function updateSettingsDisplay(){
+  const cfg = configs[currentConfig];
+  document.getElementById('configSettings').innerHTML = `
+    <div class="setting-category">[Basic Sensitivity]</div>
+    <div class="setting-line"><span>Camera Sens</span><span class="setting-value">${cfg.sensitivity.cam}</span></div>
+    <div class="setting-line"><span>Fire Sens</span><span class="setting-value">${cfg.sensitivity.fire}</span></div>
+    <div class="setting-line"><span>Gyroscope</span><span class="setting-value">${cfg.sensitivity.gyro}</span></div>
+    <div class="setting-line"><span>Gyro Fire</span><span class="setting-value">${cfg.sensitivity.gyroFire}</span></div>
+    <div class="setting-category">[Scope Sensitivities]</div>
+    <div class="setting-line"><span>Steering</span><span class="setting-value">${cfg.scopes.steering}</span></div>
+    <div class="setting-line"><span>ADS Sensitivity</span><span class="setting-value">${cfg.scopes.ads}</span></div>
+    <div class="setting-line"><span>Red Dot / Holographic</span><span class="setting-value">${cfg.scopes.reddot}</span></div>
+    <div class="setting-line"><span>Tactical Scope (3x)</span><span class="setting-value">${cfg.scopes.tactical}</span></div>
+    <div class="setting-line"><span>Sniper Scope</span><span class="setting-value">${cfg.scopes.sniper}</span></div>
+    <div class="setting-line"><span>3x Tactical</span><span class="setting-value">${cfg.scopes.scope3x}</span></div>
+    <div class="setting-line"><span>4x Tactical</span><span class="setting-value">${cfg.scopes.scope4x}</span></div>
+    <div class="setting-line"><span>6x Tactical</span><span class="setting-value">${cfg.scopes.scope6x}</span></div>
+    <div class="setting-line"><span>8x Tactical</span><span class="setting-value">${cfg.scopes.scope8x}</span></div>
+    <div class="setting-line"><span>Vertical Turning</span><span class="setting-value">${cfg.scopes.vertical}</span></div>
+    <div class="setting-category">[Basic Settings]</div>
+    <div class="setting-line"><span>Aim Assist</span><span class="setting-value">${cfg.basic.aimAssist}</span></div>
+    <div class="setting-line"><span>Gun Kick</span><span class="setting-value">${cfg.basic.gunKick}</span></div>
+    <div class="setting-line"><span>Recoil Rotate</span><span class="setting-value">${cfg.basic.recoilRotate}</span></div>
+    <div class="setting-line"><span>View Kick</span><span class="setting-value">${cfg.basic.viewKick}</span></div>
+    <div class="setting-line"><span>Depth of Field</span><span class="setting-value">${cfg.basic.dof}</span></div>
+  `;
+
+  document.getElementById('scope-steering').textContent = cfg.scopes.steering;
+  document.getElementById('scope-ads').textContent = cfg.scopes.ads;
+  document.getElementById('scope-reddot').textContent = cfg.scopes.reddot;
+  document.getElementById('scope-tactical').textContent = cfg.scopes.tactical;
+  document.getElementById('scope-sniper').textContent = cfg.scopes.sniper;
+  document.getElementById('scope-3x').textContent = cfg.scopes.scope3x;
+  document.getElementById('scope-4x').textContent = cfg.scopes.scope4x;
+  document.getElementById('scope-6x').textContent = cfg.scopes.scope6x;
+  document.getElementById('scope-8x').textContent = cfg.scopes.scope8x;
+  document.getElementById('scope-vertical').textContent = cfg.scopes.vertical;
+}
+
+function updateStickyIndex(){
+  const cfg = configs[currentConfig];
+  document.getElementById('stickyIndex').textContent = cfg.stickyIndex;
+  document.getElementById('stickyFormulaDisplay').textContent = `Index: ${cfg.stickyIndex}/100`;
+}
+
+async function copyToClipboard(text){
+  if(navigator.clipboard && window.isSecureContext){
+    try{ await navigator.clipboard.writeText(text); return true; }catch(e){ /* fall through */ }
+  }
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return true;
+  }catch(e){ return false; }
+}
+
+function copySettings(){
+  const cfg = configs[currentConfig];
+  const text = `CODM Settings — ${cfg.name}
+Camera: ${cfg.sensitivity.cam}
+Fire: ${cfg.sensitivity.fire}
+Gyro: ${cfg.sensitivity.gyro}
+Gyro Fire: ${cfg.sensitivity.gyroFire}
+ADS: ${cfg.scopes.ads}
+Red Dot: ${cfg.scopes.reddot}
+3x: ${cfg.scopes.tactical}
+Sniper: ${cfg.scopes.sniper}`;
+  copyToClipboard(text).then(ok => showToast(ok ? 'Settings copied!' : 'Copy blocked — select & copy manually', !ok));
+}
+
+// ---------- Loadout slots (replaces window.prompt, persists via storage) ----------
+function renderLoadoutSlots(){
+  const wrap = document.getElementById('loadoutSlots');
+  let html = '';
+  for(let i = 0; i < 5; i++){
+    const slot = loadouts[i];
+    html += `<div class="loadout-slot ${slot ? 'filled' : ''}" onclick="handleLoadoutSlotClick(${i})">
+      <div class="slot-num">SLOT ${i+1}</div>
+      <div class="slot-name">${slot ? slot.name : '— empty —'}</div>
+    </div>`;
+  }
+  wrap.innerHTML = html;
+}
+
+function openLoadoutSlots(){
+  const wrap = document.getElementById('loadoutSlotsWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  if(wrap.style.display === 'block') renderLoadoutSlots();
+}
+
+function handleLoadoutSlotClick(index){
+  const cfg = configs[currentConfig];
+  loadouts[index] = { config: currentConfig, name: cfg.name, date: new Date().toLocaleDateString() };
+  storageSet('codm_loadouts', loadouts);
+  renderLoadoutSlots();
+  showToast(`Saved "${cfg.name}" to Slot ${index+1}`);
+}
+
+function toggleFavorite(evt, configId){
+  evt.stopPropagation();
+  const index = favorites.indexOf(configId);
+  if(index > -1){
+    favorites.splice(index, 1);
+    evt.currentTarget.classList.remove('active');
+    showToast('Removed from favorites');
+  }else{
+    favorites.push(configId);
+    evt.currentTarget.classList.add('active');
+    showToast('Added to favorites');
+  }
+  storageSet('codm_favorites', favorites);
+}
+
+// ---------- AI Advisor ----------
+function selectDevice(device, evt){
+  currentDevice = device;
+  document.querySelectorAll('.device-option').forEach(d => d.classList.remove('active'));
+  if(evt) evt.currentTarget.classList.add('active');
+  updateAIRecommendation();
+}
+
+function selectPlaystyle(style, evt){
+  currentPlaystyle = style;
+  document.querySelectorAll('.sens-preset').forEach(p => p.classList.remove('active'));
+  if(evt) evt.currentTarget.classList.add('active');
+  updateAIRecommendation();
+}
+
+function updateAIRecommendation(){
+  const screenSize = parseFloat(document.getElementById('screenSize').value);
+  const expLevel = parseInt(document.getElementById('expLevel').value);
+  const useGyro = document.getElementById('useGyro').checked;
+  const stickyAim = document.getElementById('stickyAim').checked;
+
+  document.getElementById('screenSizeValue').textContent = screenSize + '"';
+  document.getElementById('expLevelValue').textContent = expLevel;
+
+  let baseCam = 100 + (expLevel * 10);
+  let baseADS = stickyAim ? 70 : 90 + (expLevel * 5);
+  let baseGyro = useGyro ? 50 + (expLevel * 5) : 0;
+
+  if(currentPlaystyle === 'aggressive'){ baseCam += 40; baseADS += 20; baseGyro += 20; }
+  else if(currentPlaystyle === 'passive'){ baseCam -= 20; baseADS -= 15; baseGyro -= 10; }
+
+  const sizeFactor = screenSize / 6.5;
+  baseCam = Math.round(baseCam * sizeFactor);
+  baseADS = Math.round(baseADS * sizeFactor);
+  baseGyro = Math.round(Math.max(baseGyro, 0) * sizeFactor);
+
+  const rec = {
+    camera: Math.min(baseCam, 300),
+    ads: Math.min(baseADS, 300),
+    gyro: Math.min(baseGyro, 300),
+    type: stickyAim ? 'Sticky Aim' : 'Balanced',
+    confidence: Math.min(expLevel * 10, 95)
+  };
+
+  document.getElementById('aiContent').innerHTML = `
+    <strong>Recommended Config:</strong><br>
+    Camera: ${rec.camera} · ADS: ${rec.ads} · Gyro: ${rec.gyro}<br>
+    Type: ${rec.type} · Confidence: ${rec.confidence}%
+  `;
+  document.getElementById('aiCalculation').innerHTML = `
+    Base(${100 + expLevel * 10}) × Size(${sizeFactor.toFixed(2)}) × Style(${currentPlaystyle}) = ${rec.camera}<br>
+    Stickiness factor: ${stickyAim ? '1.4x (max)' : '1.0x (standard)'}
+  `;
+}
+
+function applyAIRecommendation(){
+  showToast('AI config applied — check the Configs tab');
+}
+
+function matchWeaponToConfig(){
+  const weaponId = document.getElementById('aiWeaponSelect').value;
+  if(!weaponId) return;
+  const weapon = weapons[weaponId];
+  const recommendedConfig = weapon.category === 'sniper' ? 'stickySniper' :
+                             weapon.category === 'smg' ? 'smg' :
+                             weapon.category === 'shotgun' ? 'shotgun' : 'stickyPro';
+  document.getElementById('weaponMatchResult').innerHTML = `
+    <div class="ai-suggestion">
+      <div class="ai-title">🎯 MATCH FOR ${weapon.name.toUpperCase()}</div>
+      <div class="ai-content">
+        Best Config: <strong>${configs[recommendedConfig].name}</strong><br>
+        Reason: ${weapon.category === 'sniper' ? 'Low sens for precision' : weapon.category === 'smg' ? 'High sens for rush' : 'Balanced sticky aim'}<br>
+        Difficulty: ${'●'.repeat(configs[recommendedConfig].difficulty)}${'○'.repeat(3-configs[recommendedConfig].difficulty)}
+      </div>
+    </div>
+  `;
+}
+
+// ---------- Weapons ----------
+function initWeaponGrid(){
+  const grid = document.getElementById('weaponGrid');
+  grid.innerHTML = '';
+
+  Object.entries(weapons).forEach(([id, weapon]) => {
+    if(currentFilter !== 'all' && weapon.category !== currentFilter) return;
+    const div = document.createElement('div');
+    div.className = 'weapon-btn';
+    div.onclick = () => selectWeapon(id, div);
+    div.innerHTML = `
+      ${weapon.name}
+      <span class="tier-badge tier-${weapon.tier.toLowerCase()}">${weapon.tier}</span>
+      <div class="weapon-category">${weapon.category.toUpperCase()}</div>
+    `;
+    grid.appendChild(div);
+  });
+
+  const select = document.getElementById('aiWeaponSelect');
+  if(select.options.length <= 1){
+    Object.entries(weapons).forEach(([id, w]) => select.add(new Option(w.name, id)));
+  }
+}
+
+function filterWeapons(category, evt){
+  currentFilter = category;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  if(evt) evt.currentTarget.classList.add('active');
+  initWeaponGrid();
+}
+
+function searchWeapons(){
+  const query = document.getElementById('weaponSearch').value.toLowerCase();
+  document.querySelectorAll('.weapon-btn').forEach(btn => {
+    btn.style.display = btn.textContent.toLowerCase().includes(query) ? 'block' : 'none';
+  });
+}
+
+function selectWeapon(weaponId, el){
+  currentWeapon = weaponId;
+  const w = weapons[weaponId];
+
+  document.querySelectorAll('.weapon-btn').forEach(b => b.classList.remove('active'));
+  if(el) el.classList.add('active');
+
+  let bestAttachments = '';
+  Object.entries(w.best).forEach(([slot, att]) => {
+    bestAttachments += `<div class="attachment-item best"><div><div class="attachment-name">${slot}: ${att.name}</div><div class="attachment-effect">Unlock: Level ${att.level}</div></div></div>`;
+  });
+
+  document.getElementById('weaponBuild').innerHTML = `
+    <div class="card-title">${w.name} <span class="tier-badge tier-${w.tier.toLowerCase()}">${w.tier}</span></div>
+    <div class="stat-bar"><span class="stat-label">Damage</span><div class="stat-track"><div class="stat-fill damage" style="width:${w.stats.damage}%"></div></div><span class="stat-value-num">${w.stats.damage}</span></div>
+    <div class="stat-bar"><span class="stat-label">Fire Rate</span><div class="stat-track"><div class="stat-fill fire-rate" style="width:${w.stats.rpm}%"></div></div><span class="stat-value-num">${w.stats.rpm}</span></div>
+    <div class="stat-bar"><span class="stat-label">Accuracy</span><div class="stat-track"><div class="stat-fill accuracy" style="width:${w.stats.accuracy}%"></div></div><span class="stat-value-num">${w.stats.accuracy}</span></div>
+    <div class="stat-bar"><span class="stat-label">Mobility</span><div class="stat-track"><div class="stat-fill mobility" style="width:${w.stats.mobility}%"></div></div><span class="stat-value-num">${w.stats.mobility}</span></div>
+    <div class="stat-bar"><span class="stat-label">Range</span><div class="stat-track"><div class="stat-fill range" style="width:${w.stats.range}%"></div></div><span class="stat-value-num">${w.stats.range}</span></div>
+    <div class="attachment-section">
+      <div class="attachment-title">Optimal Build</div>
+      ${bestAttachments}
+    </div>
+    <div class="pro-tip">
+      <div class="pro-tip-title">💡 Recommended Sensitivity</div>
+      <div>${w.category === 'sniper' ? 'Use Sticky Sniper config (Cam 50, ADS 40)' : w.category === 'smg' ? 'Use SMG Rush config (Cam 190, ADS 160)' : 'Use Sticky Pro config (Cam 90, ADS 75)'}</div>
+    </div>
+    <button class="action-btn" onclick="addToCompareFromWeapon('${weaponId}')">Add to Compare</button>
+  `;
+}
+
+// ---------- Compare ----------
+function initCompare(){
+  const w1 = document.getElementById('compareWeapon1');
+  const w2 = document.getElementById('compareWeapon2');
+  if(w1.options.length <= 1){
+    Object.entries(weapons).forEach(([id, w]) => { w1.add(new Option(w.name, id)); w2.add(new Option(w.name, id)); });
+  }
+}
+
+function statRow(label, a, b, nameA, nameB){
+  const cls = a > b ? 'winner' : a < b ? 'loser' : '';
+  const clsB = b > a ? 'winner' : b < a ? 'loser' : '';
+  const winnerName = a > b ? nameA : b > a ? nameB : 'Tie';
+  return `<tr><td>${label}</td><td class="${cls}">${a}</td><td class="${clsB}">${b}</td><td>${winnerName}</td></tr>`;
+}
+
+function updateComparison(){
+  const w1id = document.getElementById('compareWeapon1').value;
+  const w2id = document.getElementById('compareWeapon2').value;
+  if(!w1id || !w2id) return;
+  const weapon1 = weapons[w1id], weapon2 = weapons[w2id];
+
+  document.getElementById('comparisonResults').innerHTML = `
+    <table class="comparison-table">
+      <tr><th>Stat</th><th>${weapon1.name}</th><th>${weapon2.name}</th><th>Winner</th></tr>
+      ${statRow('Damage', weapon1.stats.damage, weapon2.stats.damage, weapon1.name, weapon2.name)}
+      ${statRow('Fire Rate', weapon1.stats.rpm, weapon2.stats.rpm, weapon1.name, weapon2.name)}
+      ${statRow('Accuracy', weapon1.stats.accuracy, weapon2.stats.accuracy, weapon1.name, weapon2.name)}
+      ${statRow('Mobility', weapon1.stats.mobility, weapon2.stats.mobility, weapon1.name, weapon2.name)}
+      ${statRow('Range', weapon1.stats.range, weapon2.stats.range, weapon1.name, weapon2.name)}
+    </table>
+  `;
+
+  let w1Score = 0, w2Score = 0;
+  [['damage'],['rpm'],['accuracy']].forEach(([k]) => {
+    if(weapon1.stats[k] > weapon2.stats[k]) w1Score++;
+    else if(weapon1.stats[k] < weapon2.stats[k]) w2Score++;
+  });
+
+  const panel = document.getElementById('winnerAnalysis');
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div class="card-title">🏆 Analysis</div>
+    <div style="text-align:center; font-family:var(--font-display); font-size:19px; font-weight:700; margin:16px 0 6px;">
+      ${w1Score > w2Score ? weapon1.name + ' wins' : w2Score > w1Score ? weapon2.name + ' wins' : "It's a tie"}
+    </div>
+    <div style="text-align:center; font-size:12.5px; color:var(--text-dim);">${weapon1.name}: ${w1Score} pts · ${weapon2.name}: ${w2Score} pts</div>
+  `;
+}
+
+function addToCompare(){
+  if(currentWeapon) addToCompareFromWeapon(currentWeapon);
+  else showToast('Select a weapon first', true);
+}
+
+function addToCompareFromWeapon(weaponId){
+  if(compareList.length >= 4){ showToast('Max 4 weapons', true); return; }
+  if(compareList.includes(weaponId)){ showToast('Already added', true); return; }
+  compareList.push(weaponId);
+  updateCompareTool();
+  showToast('Added to compare');
+}
+
+function updateCompareTool(){
+  const tool = document.getElementById('comparisonTool');
+  if(compareList.length === 0){
+    tool.innerHTML = '<div class="compare-row"><span style="color:var(--text-faint);">Select weapons to compare</span></div>';
+    return;
+  }
+  tool.innerHTML = compareList.map(id => {
+    const w = weapons[id];
+    return `<div class="compare-row"><span>${w.name} (${w.tier})</span><button onclick="removeFromCompare('${id}')">Remove</button></div>`;
+  }).join('');
+}
+
+function removeFromCompare(weaponId){
+  compareList = compareList.filter(id => id !== weaponId);
+  updateCompareTool();
+}
+
+function clearComparison(){
+  compareList = [];
+  updateCompareTool();
+  document.getElementById('compareWeapon1').value = '';
+  document.getElementById('compareWeapon2').value = '';
+  document.getElementById('comparisonResults').innerHTML = '';
+  document.getElementById('winnerAnalysis').style.display = 'none';
+  showToast('Comparison cleared');
+}
+
+// ---------- Calculator ----------
+function calculateScopes(){
+  const base = document.getElementById('baseAds').value;
+  document.getElementById('baseAdsValue').textContent = base;
+  const m = { reddot:1.3, tactical:0.9, sniper:0.6, scope4x:0.75, scope6x:0.5 };
+  document.getElementById('scopeResults').innerHTML = `
+    <div class="setting-category">[Calculated Scopes]</div>
+    <div class="setting-line"><span>Base ADS</span><span class="setting-value">${base}</span></div>
+    <div class="setting-line"><span>Red Dot</span><span class="setting-value">${Math.round(base * m.reddot)}</span></div>
+    <div class="setting-line"><span>3x Tactical</span><span class="setting-value">${Math.round(base * m.tactical)}</span></div>
+    <div class="setting-line"><span>Sniper</span><span class="setting-value">${Math.round(base * m.sniper)}</span></div>
+    <div class="setting-line"><span>4x Scope</span><span class="setting-value">${Math.round(base * m.scope4x)}</span></div>
+    <div class="setting-line"><span>6x Scope</span><span class="setting-value">${Math.round(base * m.scope6x)}</span></div>
+  `;
+}
+
+function copyScopes(){
+  const text = document.getElementById('scopeResults').textContent.replace(/\s+/g,' ').trim();
+  copyToClipboard(text).then(ok => showToast(ok ? 'Scopes copied!' : 'Copy blocked — select & copy manually', !ok));
+}
+
+function calculateAdvancedScopes(base){
+  document.getElementById('calcBaseAds').textContent = base;
+  const multipliers = { 'Red Dot':1.33, '3x Scope':0.87, '4x Scope':0.80, 'Sniper':0.73, '6x Scope':0.67, '8x Scope':0.53 };
+  document.getElementById('scopeMultipliers').innerHTML = Object.entries(multipliers).map(([name, mult]) =>
+    `<div class="mult-item"><div class="mult-value">${Math.round(base * mult)}</div><div class="mult-label">${name}</div></div>`
+  ).join('');
+}
+
+function optimizeSticky(){
+  const sticky = document.getElementById('stickyMode').checked;
+  const aggressive = document.getElementById('aggressiveMode').checked;
+  const sniper = document.getElementById('sniperMode').checked;
+  let result = 'STICKY PRO', label = 'Optimized for magnetic aim assist';
+  if(sniper){ result = 'SNIPER PRECISION'; label = 'Ultra-low for maximum accuracy'; }
+  else if(aggressive){ result = 'AGGRESSIVE RUSH'; label = 'High speed, lower stickiness'; }
+  document.getElementById('stickyResult').innerHTML = `<div class="result-value">${result}</div><div class="result-label">${label}</div>`;
+}
+
+function calculateTTK(){
+  const weaponId = document.getElementById('calcWeapon').value;
+  const distance = parseFloat(document.getElementById('calcDistance').value) || 0;
+  const armor = document.getElementById('calcArmor').value;
+
+  const select = document.getElementById('calcWeapon');
+  if(select.options.length <= 1){
+    Object.entries(weapons).forEach(([id, w]) => select.add(new Option(w.name, id)));
+  }
+  if(!weaponId) return;
+
+  const w = weapons[weaponId];
+  let damage = w.stats.damage;
+  if(distance > 20) damage *= 0.8;
+  if(distance > 40) damage *= 0.6;
+  if(armor === 'light') damage *= 0.85;
+  if(armor === 'heavy') damage *= 0.7;
+
+  const shotsToKill = Math.ceil(100 / damage);
+  const ttk = ((shotsToKill - 1) / w.stats.rpm * 60000).toFixed(0);
+  document.getElementById('calcResult').textContent = ttk + ' ms';
+}
+
+// ---------- Formulas ----------
+function generateSensitivityMatrix(){
+  const matrix = document.getElementById('sensMatrix');
+  if(!matrix || matrix.innerHTML !== '') return;
+  const playstyles = ['Rush', 'Balanced', 'Camp'];
+  const ranges = ['Close', 'Mid', 'Long'];
+  let html = '<div class="matrix-cell matrix-header"></div>';
+  ranges.forEach(r => html += `<div class="matrix-cell matrix-header">${r}</div>`);
+  playstyles.forEach(style => {
+    html += `<div class="matrix-cell matrix-header">${style}</div>`;
+    ranges.forEach(range => {
+      const cam = style === 'Rush' ? 180 : style === 'Camp' ? 80 : 120;
+      const ads = range === 'Close' ? 140 : range === 'Long' ? 60 : 100;
+      html += `<div class="matrix-cell"><div class="matrix-value">${cam}/${ads}</div></div>`;
+    });
+  });
+  matrix.innerHTML = html;
+}
+
+// ---------- RAGE ----------
+function showRageBuild(type){
+  const details = {
+    hvk:{ name:'HVK-30 Large Caliber', desc:'2-tap headshot at all ranges. Requires Large Caliber ammo unlocked at level 38.', attachments:['Muzzle: Monolithic Suppressor','Barrel: MIP Extended','Ammo: Large Caliber','Stock: No Stock','Grip: Foregrip'], sens:'Camera 135 · ADS 115 — focus on upper chest' },
+    drh:{ name:'DR-H OTM', desc:'Upper chest 2-tap kill with OTM ammo. Unlocked at level 35.', attachments:['Muzzle: Monolithic Suppressor','Barrel: MIP Extended','Ammo: 30 Round OTM','Stock: No Stock','Grip: Foregrip'], sens:'Camera 140 · ADS 120 — aim upper chest' },
+    spr208:{ name:'SP-R 208', desc:'Chest up one-shot kill. Fast ADS speed for aggressive sniping.', attachments:['Muzzle: Monolithic Suppressor','Barrel: RTC Extended','Optic: Tactical Scope','Stock: RTC Steady','Ammo: Extended Mag'], sens:'Camera 60 · ADS 50 — quickscope enabled' },
+    rpd:{ name:'RPD FMJ', desc:'Shoot through entire buildings with FMJ. Wall spam meta.', attachments:['Muzzle: Tactical Suppressor','Barrel: MIP Extended','Grip: Foregrip','Stock: YKM Combat','Ammo: 100 Round + FMJ'], sens:'Camera 120 · ADS 100 — pre-fire walls' },
+    m4lmg:{ name:'M4LMG FMJ', desc:'High accuracy wallbangs. Less damage but more stable.', attachments:['Muzzle: Tactical Suppressor','Barrel: MIP Extended','Grip: Foregrip','Stock: YKM Combat','Ammo: Extended + FMJ'], sens:'Camera 110 · ADS 95 — hold angles' },
+    icr1:{ name:'ICR-1 Laser', desc:'Literally zero recoil. Perfect for beaming at range.', attachments:['Muzzle: Tactical Suppressor','Barrel: MIP Extended','Optic: Red Dot','Stock: No Stock','Grip: Foregrip'], sens:'Camera 100 · ADS 85 — track smoothly' },
+    gks:{ name:'GKS Stable', desc:'Laser beam SMG with no recoil. Great for headshots.', attachments:['Muzzle: Tactical Suppressor','Barrel: MIP Extended','Laser: 5mW Laser','Stock: No Stock','Grip: Foregrip'], sens:'Camera 150 · ADS 130 — headshot machine' }
+  };
+  const build = details[type];
+  document.getElementById('rageBuildDetails').style.display = 'block';
+  document.getElementById('rageContent').innerHTML = `
+    <div class="card-title" style="color:var(--danger);">${build.name}</div>
+    <div style="margin-bottom:14px; color:var(--text-dim); font-size:12.5px; line-height:1.5;">${build.desc}</div>
+    <div class="attachment-section" style="margin-top:0; padding-top:0; border-top:none;">
+      <div class="attachment-title">Attachments</div>
+      ${build.attachments.map(a => `<div class="attachment-item"><div class="attachment-name">${a}</div></div>`).join('')}
+    </div>
+    <div class="sensitivity-breakdown">
+      <div class="breakdown-title">🎯 Recommended Sensitivity</div>
+      <div class="breakdown-text">${build.sens}</div>
+    </div>
+  `;
+  document.getElementById('rageBuildDetails').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ---------- Utility ----------
+function showToast(message, error){
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast show' + (error ? ' error' : '');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+}
+
+function syncData(){
+  const btn = document.querySelector('.sync-btn');
+  btn.classList.add('syncing');
+  setTimeout(() => {
+    btn.classList.remove('syncing');
+    showToast('Data synced');
+    favorites.forEach(id => {
+      document.querySelectorAll('.favorite-btn').forEach(btn => {
+        if(btn.getAttribute('onclick').includes(`'${id}'`)) btn.classList.add('active');
+      });
+    });
+  }, 1200);
+}
+
+// ---------- Init ----------
+async function init(){
+  favorites = await storageGet('codm_favorites', []);
+  loadouts = await storageGet('codm_loadouts', [null,null,null,null,null]);
+
+  updateSettingsDisplay();
+  updateStickyIndex();
+  calculateScopes();
+  calculateAdvancedScopes(75);
+
+  favorites.forEach(id => {
+    document.querySelectorAll('.favorite-btn').forEach(btn => {
+      if(btn.getAttribute('onclick').includes(`'${id}'`)) btn.classList.add('active');
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
