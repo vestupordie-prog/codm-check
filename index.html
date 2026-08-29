@@ -232,8 +232,8 @@
             }
 
             if (isFound) {
-                setStatus("Corrupt Injected! You can close this tab.", "ok");
-                descEl.textContent = "Call of Duty: Mobile was launched successfully.";
+                // Redirect to the config page when the game is found
+                window.location.href = 'config.html';
             } else {
                 setStatus("App not installed.", "fail");
                 descEl.textContent = "Please install Call of Duty: Mobile from the App Store.";
