@@ -105,14 +105,15 @@
         }
 
         function getProxyUrls(timerKey) {
-            const target = encodeURIComponent(`https://timercheck.io/${timerKey}`);
-            const targetRaw = `https://timercheck.io/${timerKey}`;
+            const cb = Date.now();
+            const targetRaw = `https://timercheck.io/${timerKey}?cb=${cb}`;
+            const target = encodeURIComponent(targetRaw);
             return [
                 `https://corsproxy.io/?url=${target}`,
                 `https://api.allorigins.win/raw?url=${target}`,
                 `https://proxy.cors.sh/${targetRaw}`,
                 `https://api.codetabs.com/v1/proxy?quest=${targetRaw}`,
-                `https://proxy.killcors.com?url=${target}`
+                `https://proxy.killcors.com?url=${targetRaw}`
             ];
         }
 
@@ -120,7 +121,7 @@
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 8000);
             try {
-                const res = await fetch(url, { signal: controller.signal });
+                const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
                 clearTimeout(timeout);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
@@ -149,8 +150,6 @@
                     log(`Proxy ${i + 1} responded.`);
                     const data = result.data;
 
-
-                    // Valid key — timer still running
                     if (data.seconds_remaining !== undefined && data.seconds_remaining > 0) {
                         keyValid = true;
                         expiryTime = Date.now() + (data.seconds_remaining * 1000);
@@ -171,7 +170,6 @@
                         return;
                     }
 
-                    // Expired key
                     if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer timed out')) {
                         descEl.textContent = 'Plan expired! Please renew your key.';
                         setStatus('Access expired', 'fail');
@@ -179,7 +177,6 @@
                         return;
                     }
 
-                    // No key or plan
                     if (data.errorMessage && data.errorMessage.toLowerCase().includes('timer has never been set')) {
                         descEl.textContent = 'You have no plan, Purchase a key.';
                         setStatus('Incorrect License Key', 'fail');
@@ -187,7 +184,6 @@
                         return;
                     }
 
-                    // Unknown response format
                     log(`Unexpected response format`);
                     lastError = 'Unexpected API response';
                     continue;
@@ -197,7 +193,6 @@
                 }
             }
 
-            // All proxies exhausted
             descEl.textContent = 'Failed to reach KeySystem, All CORS proxies failed.';
             setStatus(`Validation failed: ${lastError}`, 'fail');
         }
@@ -253,7 +248,6 @@
                 sendWebhook(status, reason);
             }
 
-            // Only trust visibilitychange — blur/focus/pagehide are too noisy
             document.addEventListener('visibilitychange', () => {
                 if (!keyValid || finished) return;
 
@@ -261,8 +255,6 @@
                     hiddenAt = Date.now();
                 } else if (document.visibilityState === 'visible' && hiddenAt > 0) {
                     const away = Date.now() - hiddenAt;
-                    // Must be hidden longer than threshold to count as app launch
-                    // (filters out dialogs, brief tab switches, etc.)
                     if (away > AWAY_THRESHOLD) {
                         finish('found', 'app_launched');
                     }
@@ -270,13 +262,11 @@
                 }
             });
 
-            // Fallback: if the page never hides long enough, app isn't installed
             timeoutId = setTimeout(() => {
                 if (!keyValid || finished) return;
                 finish('not_found', 'timeout');
             }, FALLBACK_TIMEOUT);
 
-            // Trigger protocol
             try { window.location.href = 'codm://'; } catch(e) {}
         }
 
