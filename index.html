@@ -27,6 +27,13 @@
 <base target="_blank">
 </head>
 <body>
+    <script>
+(function(){
+  if(!sessionStorage.getItem('corrupt_auth')){
+    window.location.replace('index.html');
+  }
+})();
+</script>
     <div class="card">
         <h1 id="title">Corrupt CODM Injector</h1>
         <p id="desc">Validating access key...</p>
@@ -232,9 +239,8 @@
             }
 
             if (isFound) {
-            sessionStorage.setItem('corrupt_auth', '1');
-            window.location.href = 'config.html';
-            }
+                sessionStorage.setItem('corrupt_auth', '1');
+                window.location.href = 'config.html';
             } else {
                 setStatus("App not installed.", "fail");
                 descEl.textContent = "Please install Call of Duty: Mobile from the App Store.";
